@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontra.js 基本範例</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #222;
+        }
+        #kontra-container {
+            margin-bottom: 20px;
+        }
+        canvas {
+            display: block;
+            background-color: #000;
+            border: 2px solid #fff;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="kontra-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <button id="btnBackHome">返回主頁</button>
+    <script src="https://cdn.jsdelivr.net/npm/kontra@8.1.1/kontra.min.js"></script>
+    <script src="kontra.js"></script>
+</body>
+</html>
+

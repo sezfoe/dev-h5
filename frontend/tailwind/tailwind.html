@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailwind Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+    <h1 class="text-3xl font-bold mb-4">Test Page</h1>
+    <p class="mb-6">正在運行 tailwind.js...</p>
+    
+    <div class="my-5">
+        <div class="mb-2.5">
+            <button id="btnExpand" class="mx-1.5 my-2.5 px-5 py-2.5 cursor-pointer bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                展開文字框
+            </button>
+        </div>
+        <div class="mt-2.5">
+            <input type="text" id="textBox" placeholder="輸入文字..." 
+                   class="w-[200px] p-2.5 border-2 border-gray-300 rounded transition-all duration-500 ease-in-out focus:outline-none focus:border-blue-500">
+        </div>
+    </div>
+    
+    <hr class="my-5 border-gray-300">
+    <div class="mt-5">
+        <button id="btnBackHome" class="mx-1.5 my-2.5 px-5 py-2.5 cursor-pointer bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+            返回主頁
+        </button>
+    </div>
+    
+    <script src="tailwind.js"></script>
+</body>
+</html>
+

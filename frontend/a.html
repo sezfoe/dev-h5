@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式英文文法教學：To V 與 Ving</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Visualization & Content Choices:
+        - Report Info: Definitions of To V & Ving. Goal: Inform. Viz/Presentation: Styled text blocks. Interaction: None. Justification: Clear presentation of core concepts. Library/Method: HTML/Tailwind.
+        - Report Info: Lists of verbs followed by To V or Ving. Goal: Inform/Reference. Viz/Presentation: Bulleted lists with examples. Interaction: Clear visual separation. Justification: Easy lookup and understanding. Library/Method: HTML/Tailwind.
+        - Report Info: Verbs with meaning change (remember, forget, stop, try). Goal: Compare/Clarify. Viz/Presentation: Side-by-side comparison using distinct blocks or tables for each verb. Interaction: Visual grouping. Justification: Highlights subtle differences effectively. Library/Method: HTML/Tailwind.
+        - Report Info: Practice quiz questions and answers. Goal: Assess/Reinforce. Viz/Presentation: Interactive multiple-choice questions with radio buttons. Interaction: User selects answers, JS provides immediate feedback (correct/incorrect) and a final score. Justification: Active learning and self-assessment. Library/Method: HTML/Tailwind/JavaScript.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Assuming Inter is a preferred font, fallback to sans-serif */
+            background-color: #FAF7F5; /* Warm neutral background */
+            color: #4A4A4A; /* Dark gray for text for readability */
+        }
+        .tab-button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: #E9E4E0; /* Lighter warm neutral for inactive tabs */
+            color: #707070;
+        }
+        .tab-button.active {
+            background-color: #D4C0A5; /* Subtle accent color for active tab */
+            color: #FFFFFF;
+        }
+        .tab-button:hover {
+            background-color: #DDCDBE; /* Slightly darker on hover for inactive */
+        }
+        .tab-button.active:hover {
+            background-color: #C8B49A; /* Slightly darker on hover for active */
+        }
+        .content-section {
+            background-color: #FFFFFF;
+            border: 1px solid #E9E4E0;
+        }
+        .quiz-question {
+            background-color: #F8F9FA;
+            border-left: 4px solid #D4C0A5;
+        }
+        .correct-answer {
+            color: #28A745; /* Green for correct */
+        }
+        .incorrect-answer {
+            color: #DC3545; /* Red for incorrect */
+        }
+        .button-primary {
+            background-color: #A08C7D; /* Muted accent for buttons */
+            color: #FFFFFF;
+            transition: background-color 0.3s ease;
+        }
+        .button-primary:hover {
+            background-color: #8A7465;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[#A08C7D]">英文初級文法：動詞後接 To V 與 Ving</h1>
+            <p class="text-md text-gray-600 mt-2">一個互動式的學習指南，幫助您掌握不定詞與動名詞的用法。</p>
+        </header>
+
+        <nav class="mb-6">
+            <ul class="flex flex-wrap justify-center border-b border-gray-300">
+                <li class="mr-1 -mb-px">
+                    <button onclick="showTab('intro')" class="tab-button active text-sm sm:text-base inline-block py-2 px-3 sm:px-4 font-semibold rounded-t-lg" data-tab="intro">簡介</button>
+                </li>
+                <li class="mr-1">
+                    <button onclick="showTab('to-v')" class="tab-button text-sm sm:text-base inline-block py-2 px-3 sm:px-4 font-semibold rounded-t-lg" data-tab="to-v">To V (不定詞)</button>
+                </li>
+                <li class="mr-1">
+                    <button onclick="showTab('ving')" class="tab-button text-sm sm:text-base inline-block py-2 px-3 sm:px-4 font-semibold rounded-t-lg" data-tab="ving">Ving (動名詞)</button>
+                </li>
+                <li class="mr-1">
+                    <button onclick="showTab('diff')" class="tab-button text-sm sm:text-base inline-block py-2 px-3 sm:px-4 font-semibold rounded-t-lg" data-tab="diff">意義不同</button>
+                </li>
+                <li>
+                    <button onclick="showTab('quiz')" class="tab-button text-sm sm:text-base inline-block py-2 px-3 sm:px-4 font-semibold rounded-t-lg" data-tab="quiz">練習時間</button>
+                </li>
+            </ul>
+        </nav>
+
+        <main>
+            <section id="intro" class="content-section p-4 sm:p-6 rounded-b-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-[#A08C7D]">歡迎！</h2>
+                <p class="mb-3 leading-relaxed">在英文中，有些動詞後面會接另一個動詞來表達更複雜的意義。這第二個動詞通常會以兩種形式出現：「不定詞 (Infinitive)」(to + 原形動詞) 或「動名詞 (Gerund)」(動詞 + -ing)。本指南將幫助您理解它們的用法、常見動詞以及一些特殊情況。透過清晰的解釋和練習，您將能更自信地使用這些文法結構。</p>
+                <p class="leading-relaxed">請點擊上方的標籤頁來開始學習不同的部分，或直接跳到練習時間來測試您的理解程度。</p>
+            </section>
+
+            <section id="to-v" class="content-section hidden p-4 sm:p-6 rounded-b-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-[#A08C7D]">1. 什麼是不定詞 (Infinitive)？ (To V)</h2>
+                <p class="mb-4 leading-relaxed">不定詞的基本形式是 **to + 原形動詞** (the base form of the verb)。它通常表示一個目的、一個未來的動作、一個意圖或一個願望。這部分將介紹常見後面接不定詞的動詞，並提供例句幫助您理解。</p>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">want (想要)</h3>
+                        <p class="ml-4 text-gray-600">I <strong>want to eat</strong> pizza. (我想要吃披薩。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">need (需要)</h3>
+                        <p class="ml-4 text-gray-600">You <strong>need to study</strong> for the test. (你需要為考試而學習。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">plan (計畫)</h3>
+                        <p class="ml-4 text-gray-600">They <strong>plan to travel</strong> next year. (他們計畫明年去旅行。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">decide (決定)</h3>
+                        <p class="ml-4 text-gray-600">She <strong>decided to buy</strong> a new car. (她決定買一台新車。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">hope (希望)</h3>
+                        <p class="ml-4 text-gray-600">We <strong>hope to see</strong> you soon. (我們希望很快見到你。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">agree (同意)</h3>
+                        <p class="ml-4 text-gray-600">He <strong>agreed to help</strong> me. (他同意幫助我。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">refuse (拒絕)</h3>
+                        <p class="ml-4 text-gray-600">She <strong>refused to answer</strong> the question. (她拒絕回答這個問題。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">learn (學習)</h3>
+                        <p class="ml-4 text-gray-600">I <strong>learned to play</strong> the guitar. (我學會了彈吉他。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">promise (承諾)</h3>
+                        <p class="ml-4 text-gray-600">He <strong>promised to call</strong> me. (他承諾會打電話給我。)</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="ving" class="content-section hidden p-4 sm:p-6 rounded-b-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-[#A08C7D]">2. 什麼是動名詞 (Gerund)？ (Ving)</h2>
+                <p class="mb-4 leading-relaxed">動名詞的基本形式是 **動詞 + -ing**。它看起來像現在分詞，但在這裡它扮演的是名詞的角色，表示一個活動、一個經驗或一個事實。它通常表達「習慣、享受、避免」等概念。本節將列出常見後面接動名詞的動詞及其例句。</p>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">enjoy (享受)</h3>
+                        <p class="ml-4 text-gray-600">I <strong>enjoy reading</strong> books. (我享受閱讀書籍。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">finish (完成)</h3>
+                        <p class="ml-4 text-gray-600">He <strong>finished doing</strong> his homework. (他完成了他的家庭作業。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">mind (介意)</h3>
+                        <p class="ml-4 text-gray-600">Do you <strong>mind opening</strong> the window? (你介意打開窗戶嗎？)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">stop (停止)</h3>
+                        <p class="ml-4 text-gray-600">She <strong>stopped talking</strong>. (她停止說話了。) (指停止說話這個動作)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">avoid (避免)</h3>
+                        <p class="ml-4 text-gray-600">Try to <strong>avoid making</strong> mistakes. (盡量避免犯錯。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">suggest (建議)</h3>
+                        <p class="ml-4 text-gray-600">I <strong>suggest going</strong> to the park. (我建議去公園。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">admit (承認)</h3>
+                        <p class="ml-4 text-gray-600">He <strong>admitted stealing</strong> the money. (他承認偷了錢。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">practice (練習)</h3>
+                        <p class="ml-4 text-gray-600">You should <strong>practice speaking</strong> English every day. (你應該每天練習說英文。)</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">consider (考慮)</h3>
+                        <p class="ml-4 text-gray-600">They are <strong>considering moving</strong> to a new city. (他們正在考慮搬到一個新城市。)</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="diff" class="content-section hidden p-4 sm:p-6 rounded-b-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-[#A08C7D]">3. 有些動詞後面接不定詞和動名詞，但意義不同</h2>
+                <p class="mb-4 leading-relaxed">有些動詞比較特別，它們後面可以接不定詞或動名詞，但意思會有所改變。理解這些差異對於準確表達非常重要。以下將詳細說明這些動詞的用法。</p>
+                <div class="space-y-6">
+                    <div class="p-4 border rounded-md bg-gray-50">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">remember (記得)</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-medium"><strong>remember to V</strong>: 記得「去做」某事 (未來的動作)</p>
+                                <p class="ml-4 text-gray-600">I <strong>remembered to lock</strong> the door. (我記得鎖門了。)</p>
+                            </div>
+                            <div>
+                                <p class="font-medium"><strong>remember Ving</strong>: 記得「做過」某事 (過去的經驗)</p>
+                                <p class="ml-4 text-gray-600">I <strong>remember locking</strong> the door. (我記得我鎖過門了。)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border rounded-md bg-gray-50">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">forget (忘記)</h3>
+                         <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-medium"><strong>forget to V</strong>: 忘記「去做」某事 (未來的動作)</p>
+                                <p class="ml-4 text-gray-600">Don't <strong>forget to buy</strong> milk. (別忘了買牛奶。)</p>
+                            </div>
+                            <div>
+                                <p class="font-medium"><strong>forget Ving</strong>: 忘記「做過」某事 (過去的經驗)</p>
+                                <p class="ml-4 text-gray-600">I'll never <strong>forget meeting</strong> him for the first time. (我永遠不會忘記第一次見到他。)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border rounded-md bg-gray-50">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">stop (停止)</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-medium"><strong>stop to V</strong>: 停下來「去做」某事 (為了做某事而停下來)</p>
+                                <p class="ml-4 text-gray-600">He <strong>stopped to tie</strong> his shoelace. (他停下來繫鞋帶。)</p>
+                            </div>
+                            <div>
+                                <p class="font-medium"><strong>stop Ving</strong>: 停止「正在做」的某事 (停止一個動作)</p>
+                                <p class="ml-4 text-gray-600">He <strong>stopped smoking</strong>. (他戒菸了。)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border rounded-md bg-gray-50">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">try (嘗試)</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="font-medium"><strong>try to V</strong>: 努力「去做」某事 (盡力去做)</p>
+                                <p class="ml-4 text-gray-600">I will <strong>try to finish</strong> the report today. (我會努力今天完成報告。)</p>
+                            </div>
+                            <div>
+                                <p class="font-medium"><strong>try Ving</strong>: 試試看「做」某事 (嘗試一種方法)</p>
+                                <p class="ml-4 text-gray-600">If you have a headache, <strong>try taking</strong> some medicine. (如果你頭痛，試著吃點藥。)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="quiz" class="content-section hidden p-4 sm:p-6 rounded-b-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-[#A08C7D]">4. 練習時間！</h2>
+                <p class="mb-6 leading-relaxed">現在來測試一下您的學習成果吧！請選擇正確的動詞形式填入空格中。完成所有題目後，點擊「提交答案」查看您的成績。</p>
+                <form id="quizForm" class="space-y-6">
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">1. She wants _______ (learn) French.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q1" value="to learn" class="form-radio text-[#A08C7D] mr-2"> to learn</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q1" value="learning" class="form-radio text-[#A08C7D] mr-2"> learning</label></div>
+                        </div>
+                        <p id="feedback-q1" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">2. They enjoy _______ (play) soccer.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q2" value="to play" class="form-radio text-[#A08C7D] mr-2"> to play</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q2" value="playing" class="form-radio text-[#A08C7D] mr-2"> playing</label></div>
+                        </div>
+                        <p id="feedback-q2" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">3. He decided _______ (go) to the party.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q3" value="to go" class="form-radio text-[#A08C7D] mr-2"> to go</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q3" value="going" class="form-radio text-[#A08C7D] mr-2"> going</label></div>
+                        </div>
+                        <p id="feedback-q3" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">4. I finished _______ (read) the book.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q4" value="to read" class="form-radio text-[#A08C7D] mr-2"> to read</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q4" value="reading" class="form-radio text-[#A08C7D] mr-2"> reading</label></div>
+                        </div>
+                        <p id="feedback-q4" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">5. Don't forget _______ (call) me tomorrow.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q5" value="to call" class="form-radio text-[#A08C7D] mr-2"> to call</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q5" value="calling" class="form-radio text-[#A08C7D] mr-2"> calling</label></div>
+                        </div>
+                        <p id="feedback-q5" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">6. I remember _______ (see) him at the store last week.</p>
+                         <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q6" value="to see" class="form-radio text-[#A08C7D] mr-2"> to see</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q6" value="seeing" class="form-radio text-[#A08C7D] mr-2"> seeing</label></div>
+                        </div>
+                        <p id="feedback-q6" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">7. We plan _______ (visit) Japan next year.</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q7" value="to visit" class="form-radio text-[#A08C7D] mr-2"> to visit</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q7" value="visiting" class="form-radio text-[#A08C7D] mr-2"> visiting</label></div>
+                        </div>
+                        <p id="feedback-q7" class="text-sm mt-1"></p>
+                    </div>
+                    <div class="quiz-question p-4 rounded-md">
+                        <p class="font-medium mb-2">8. Do you mind _______ (help) me with this?</p>
+                        <div class="space-y-1">
+                            <div><label class="inline-flex items-center"><input type="radio" name="q8" value="to help" class="form-radio text-[#A08C7D] mr-2"> to help</label></div>
+                            <div><label class="inline-flex items-center"><input type="radio" name="q8" value="helping" class="form-radio text-[#A08C7D] mr-2"> helping</label></div>
+                        </div>
+                        <p id="feedback-q8" class="text-sm mt-1"></p>
+                    </div>
+                    <button type="button" onclick="submitQuiz()" class="button-primary font-semibold py-2 px-4 rounded-lg mt-6 w-full sm:w-auto">提交答案</button>
+                </form>
+                <div id="quizResult" class="mt-6 text-lg font-semibold"></div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 py-4 border-t border-gray-300">
+            <p class="text-sm text-gray-500">&copy; 2024 互動式英文文法教學. 祝您學習愉快！</p>
+        </footer>
+    </div>
+
+    <script>
+        const tabs = document.querySelectorAll('.tab-button');
+        const sections = document.querySelectorAll('.content-section');
+
+        function showTab(tabName) {
+            sections.forEach(section => {
+                if (section.id === tabName) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+            tabs.forEach(tab => {
+                if (tab.dataset.tab === tabName) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+
+        const quizAnswers = {
+            q1: "to learn",
+            q2: "playing",
+            q3: "to go",
+            q4: "reading",
+            q5: "to call",
+            q6: "seeing",
+            q7: "to visit",
+            q8: "helping"
+        };
+
+        function submitQuiz() {
+            let score = 0;
+            const totalQuestions = Object.keys(quizAnswers).length;
+            const form = document.getElementById('quizForm');
+
+            for (let i = 1; i <= totalQuestions; i++) {
+                const questionName = `q${i}`;
+                const selectedOption = form.elements[questionName].value;
+                const feedbackEl = document.getElementById(`feedback-${questionName}`);
+                
+                if (selectedOption) {
+                    if (selectedOption === quizAnswers[questionName]) {
+                        score++;
+                        feedbackEl.textContent = "✔️ 正確！";
+                        feedbackEl.className = "text-sm mt-1 correct-answer";
+                    } else {
+                        feedbackEl.textContent = `❌ 錯誤。正確答案是：${quizAnswers[questionName]}`;
+                        feedbackEl.className = "text-sm mt-1 incorrect-answer";
+                    }
+                } else {
+                     feedbackEl.textContent = "尚未作答此題。";
+                     feedbackEl.className = "text-sm mt-1 text-yellow-600";
+                }
+            }
+
+            const resultEl = document.getElementById('quizResult');
+            resultEl.textContent = `您的得分：${score} / ${totalQuestions}`;
+            if(score === totalQuestions) {
+                resultEl.textContent += " 🎉 太棒了，全部答對！";
+                resultEl.classList.add("correct-answer");
+                resultEl.classList.remove("incorrect-answer");
+            } else {
+                 resultEl.classList.add("incorrect-answer");
+                 resultEl.classList.remove("correct-answer");
+            }
+        }
+        
+        // Show the intro tab by default
+        showTab('intro');
+    </script>
+</body>
+</html>
