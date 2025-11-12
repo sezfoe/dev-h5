@@ -66,3 +66,34 @@ Content-Type: application/json
 - **遊戲框架**: Kontra, Phaser, Pixi.js
 
 
+## 建議架構
+```
+/js/
+ ├─ core/                     ← 系統級邏輯（通用模組）
+ │   ├─ scene_system.js       # 場景系統（背景、轉場、動畫）
+ │   ├─ input_system.js       # 操作系統（鍵盤、觸控、搖桿）
+ │   ├─ physics_system.js     # 碰撞、重力、運動邏輯
+ │   ├─ sound_system.js       # 音效、音樂控制
+ │   └─ ui_system.js          # 介面顯示、HUD
+ │
+ ├─ data/                     ← 純設定資料（不含邏輯）
+ │   ├─ levels/
+ │   │   ├─ level1.js         # 關卡設定（敵人、場景配置）
+ │   │   ├─ level2.js
+ │   │   └─ ...
+ │   ├─ characters/
+ │   │   ├─ hero.js           # 角色設定（血量、速度、模型）
+ │   │   └─ enemy_slime.js
+ │   └─ items/
+ │       ├─ potion.js
+ │       └─ sword.js
+ │
+ ├─ flows/                    ← 遊戲流程邏輯
+ │   ├─ flow_title.js         # 標題畫面流程
+ │   ├─ flow_stage.js         # 關卡流程（會引入 scene + level + character）
+ │   ├─ flow_result.js        # 結算畫面流程
+ │   └─ ...
+ │
+ ├─ main.js                   # 主頁面進入點（負責載入流程）
+ └─ config.js                 # 全域設定（語言、平台模式）
+```
