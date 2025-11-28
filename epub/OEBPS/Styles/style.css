@@ -1,0 +1,53 @@
+/* EPUB 基本樣式 */
+
+body {
+  font-family: "Microsoft YaHei", "微軟雅黑", "SimSun", "宋體", serif;
+  font-size: 1em;
+  line-height: 1.6;
+  margin: 1em;
+  padding: 0;
+  color: #333;
+}
+
+h1 {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.4em;
+  font-weight: bold;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  color: #34495e;
+}
+
+p {
+  margin: 0.8em 0;
+  text-align: justify;
+  text-indent: 2em;
+}
+
+ul, ol {
+  margin: 0.8em 0;
+  padding-left: 2em;
+}
+
+li {
+  margin: 0.4em 0;
+}
+
+.chapter {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+strong {
+  font-weight: bold;
+  color: #2c3e50;
+}

@@ -8,6 +8,7 @@
 - API 請求處理：支援 GET 和 POST 請求
 - CORS 支援：已啟用跨域資源共享
 - 多種遊戲框架：包含 Kontra、Phaser、Pixi 等遊戲引擎範例
+- EPUB 電子書：包含基本的 EPUB 文件結構和範例頁面
 
 ## 專案結構
 
@@ -22,6 +23,18 @@ H5/
 │   ├── tailwind/        # Tailwind CSS 範例
 │   ├── tool/            # 工具頁面
 │   └── test/            # 測試頁面
+├── epub/                # EPUB 電子書文件目錄
+│   ├── mimetype         # EPUB 文件類型定義
+│   ├── META-INF/        # 元數據目錄
+│   │   └── container.xml # 容器文件
+│   └── OEBPS/           # 內容目錄
+│       ├── content.opf  # 內容清單和元數據
+│       ├── toc.ncx      # 目錄導航文件
+│       ├── nav.xhtml    # EPUB 3.0 導航文件
+│       ├── Text/        # 文本內容目錄
+│       │   └── chapter1.xhtml # 範例章節
+│       └── Styles/      # 樣式文件目錄
+│           └── style.css # 基本樣式
 └── dev/                 # 開發環境文件
 ```
 
