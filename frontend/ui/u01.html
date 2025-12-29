@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UI 風格框架</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --primary: #10b981;
+            --accent: #f43f5e;
+            --secondary: #fbbf24;
+            --text: #f8fafc;
+            --grid-bg: #111827;
+            --dot-empty: #334155;
+        }
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        /* 頂部控制列風格 */
+        .controls {
+            padding: 15px; background: var(--panel);
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 20;
+        }
+        .card { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px; }
+        .value-text { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; }
+        
+        input[type=range] { width: 100%; max-width: 150px; accent-color: var(--primary); cursor: pointer; }
+        
+        select {
+            padding: 8px 12px; border-radius: 8px; background: #334155; color: white;
+            border: 1px solid #475569; font-size: 0.9rem; cursor: pointer; width: 100%;
+        }
+
+        /* 中央內容區 */
+        .main-content {
+            flex-grow: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+
+        /* 底部按鈕區風格 */
+        .footer { padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        
+        .action-button {
+            padding: 16px 60px; font-size: 1.25rem; font-weight: bold;
+            border-radius: 50px; border: none; cursor: pointer;
+            background: var(--primary); color: white; transition: all 0.2s;
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        .action-button:active { transform: scale(0.95); }
+        
+        .hint-text { font-size: 0.85rem; color: #64748b; text-align: center; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部組件範例 -->
+    <div class="controls">
+        <div class="card">
+            <span class="value-text">120</span>
+            <input type="range" value="120">
+            <span class="label">數值設定</span>
+        </div>
+        
+        <div class="card">
+            <select>
+                <option>選項 A</option>
+                <option>選項 B</option>
+            </select>
+            <span class="label">類別選擇</span>
+        </div>
+
+        <div class="card">
+            <button style="background:none; border:1px solid #475569; color:#94a3b8; padding:5px 15px; border-radius:5px; cursor:pointer; font-size:0.8rem;">輔助按鈕</button>
+            <span class="label">工具列</span>
+        </div>
+    </div>
+
+    <!-- 內容佔位區 -->
+    <div class="main-content">
+        <div style="color: #475569; border: 2px dashed #475569; padding: 40px; border-radius: 20px;">
+            中央主內容區域
+        </div>
+    </div>
+
+    <!-- 底部組件範例 -->
+    <div class="footer">
+        <button class="action-button">主動作按鈕</button>
+        <div class="hint-text">
+            這裡可以放置提示文字或操作指南。
+        </div>
+    </div>
+
+</body>
+</html>
