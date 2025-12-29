@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Worker 定時高精度節拍器 - 自定義圖片版</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --primary: #10b981;
+            --secondary: #fbbf24;
+            --accent: #f43f5e;
+            --text: #f8fafc;
+            --panel: #1e293b;
+            --dot-bg: #1e293b;
+            --dot-border: #334155;
+        }
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex; flex-direction: column; height: 100vh;
+            overflow: hidden;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .controls {
+            padding: 15px; background: var(--panel); 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        
+        .card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .label-text { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; display: block; }
+        .bpm-val { font-size: 2.2rem; font-weight: 800; color: var(--primary); line-height: 1; margin-bottom: 5px; }
+        
+        input[type=range] { width: 100%; max-width: 150px; accent-color: var(--primary); cursor: pointer; }
+        
+        select {
+            width: 100%; max-width: 130px;
+            padding: 6px; background: #334155; color: white;
+            border: 1px solid #475569; border-radius: 8px;
+            font-size: 0.85rem; cursor: pointer; outline: none;
+        }
+
+        /* 檔案上傳樣式 */
+        .upload-btn {
+            background: #475569; padding: 6px 10px; border-radius: 6px;
+            font-size: 0.75rem; cursor: pointer; margin-top: 4px;
+            border: 1px dashed #94a3b8; transition: 0.2s;
+        }
+        .upload-btn:hover { background: #64748b; }
+        #imageInput { display: none; }
+
+        button#toggleBtn {
+            grid-column: 1 / -1;
+            padding: 12px; font-size: 1.1rem; font-weight: bold;
+            border-radius: 12px; border: none; cursor: pointer;
+            background: var(--primary); color: white; transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            margin-top: 5px;
+        }
+        
+        @media (min-width: 768px) {
+            .controls { display: flex; align-items: center; padding: 15px 30px; }
+            button#toggleBtn { grid-column: auto; padding: 12px 40px; border-radius: 50px; flex-shrink: 0; }
+        }
+
+        button:active { transform: scale(0.98); }
+        button#toggleBtn.stop { background: var(--accent); box-shadow: 0 4px 6px rgba(244, 63, 94, 0.3); }
+
+        .display-area {
+            flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; position: relative;
+            padding: 10px; overflow: hidden;
+        }
+
+        #beat-dots {
+            display: flex; gap: clamp(8px, 2vw, 20px); 
+            justify-content: center; align-items: center; flex-wrap: wrap;
+            max-width: 100%; padding: 20px;
+        }
+        
+        .dot {
+            width: clamp(30px, 10vw, 60px); 
+            height: clamp(30px, 10vw, 60px); 
+            border-radius: 50%;
+            background: var(--dot-bg); border: 3px solid var(--dot-border);
+            background-size: cover; background-position: center;
+            transition: transform 0.05s ease-out, background-color 0.05s, border-color 0.05s;
+            flex-shrink: 0;
+        }
+        
+        .sub-dot {
+            width: clamp(12px, 4vw, 25px); 
+            height: clamp(12px, 4vw, 25px); 
+            border-radius: 50%;
+            background: var(--dot-bg); border: 1px solid var(--dot-border);
+            transition: all 0.05s ease-out; flex-shrink: 0;
+        }
+
+        /* 啟動狀態：如果有圖片，我們透過亮度或放大來強調 */
+        .dot.active { 
+            transform: scale(1.15); 
+            background-color: var(--primary); 
+            border-color: var(--primary);
+            box-shadow: 0 0 25px var(--primary); 
+            filter: brightness(1.3);
+        }
+        .dot.accent.active { 
+            background-color: var(--accent); 
+            border-color: var(--accent);
+            box-shadow: 0 0 25px var(--accent); 
+        }
+        
+        .sub-dot.active {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            transform: scale(1.2);
+            box-shadow: 0 0 10px var(--secondary);
+        }
+        
+        .status { position: absolute; bottom: 15px; opacity: 0.3; font-size: 0.65rem; text-align: center; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <div class="card">
+            <div class="bpm-val" id="bpmText">120</div>
+            <input type="range" id="bpmSlider" min="40" max="240" value="120">
+        </div>
+        
+        <div class="card">
+            <span class="label-text">拍數/細分</span>
+            <div style="display:flex; gap:5px;">
+                <select id="timeSig">
+                    <option value="1">1 拍</option><option value="2">2 拍</option><option value="3">3 拍</option>
+                    <option value="4" selected>4 拍</option><option value="6">6 拍</option><option value="8">8 拍</option>
+                </select>
+                <select id="subdivision">
+                    <option value="1">1/4</option><option value="2">1/8</option><option value="4">1/16</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="label-text">音色</span>
+            <select id="soundType">
+                <option value="electronic">電子合成</option>
+                <option value="woodblock">清脆木魚</option>
+                <option value="taiko" selected>和太鼓</option>
+                <option value="drumkit">爵士鼓組</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <span class="label-text">視覺載入</span>
+            <label class="upload-btn" for="imageInput">更換圖片</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <button id="toggleBtn">開始練習</button>
+    </div>
+
+    <div class="display-area">
+        <div id="beat-dots"></div>
+        <div class="status">記憶體暫存模式：SUPPORT CUSTOM ASSETS</div>
+    </div>
+
+    <script>
+        const workerCode = `
+            let timerID = null;
+            self.onmessage = (e) => {
+                if (e.data === "start") {
+                    timerID = setInterval(() => postMessage("tick"), 25);
+                } else if (e.data === "stop") {
+                    clearInterval(timerID);
+                    timerID = null;
+                }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const timerWorker = new Worker(URL.createObjectURL(blob));
+
+        let audioCtx = null;
+        let isPlaying = false;
+        let bpm = 120;
+        let nextNoteTime = 0.0;
+        let currentStep = 0; 
+        let customImageData = null; // 儲存圖片 Base64
+        const scheduleAheadTime = 0.15;
+
+        const toggleBtn = document.getElementById('toggleBtn');
+        const bpmSlider = document.getElementById('bpmSlider');
+        const bpmText = document.getElementById('bpmText');
+        const timeSigEl = document.getElementById('timeSig');
+        const subDivEl = document.getElementById('subdivision');
+        const soundTypeEl = document.getElementById('soundType');
+        const imageInput = document.getElementById('imageInput');
+        const dotsContainer = document.getElementById('beat-dots');
+
+        // 處理圖片上傳
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    customImageData = event.target.result;
+                    initDots(); // 重新渲染圓點套用圖片
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function initDots() {
+            dotsContainer.innerHTML = '';
+            const beats = parseInt(timeSigEl.value);
+            const subs = parseInt(subDivEl.value);
+            
+            for (let i = 0; i < beats; i++) {
+                const mainDot = document.createElement('div');
+                mainDot.className = 'dot';
+                mainDot.dataset.step = i * subs;
+                if (customImageData) {
+                    mainDot.style.backgroundImage = `url(${customImageData})`;
+                    mainDot.style.backgroundColor = 'transparent';
+                }
+                dotsContainer.appendChild(mainDot);
+                
+                if (subs > 1) {
+                    for (let j = 1; j < subs; j++) {
+                        const subDot = document.createElement('div');
+                        subDot.className = 'sub-dot';
+                        subDot.dataset.step = (i * subs) + j;
+                        dotsContainer.appendChild(subDot);
+                    }
+                }
+            }
+        }
+
+        function playSound(time, stepType) {
+            const type = soundTypeEl.value;
+            const mainGain = audioCtx.createGain();
+            mainGain.connect(audioCtx.destination);
+
+            if (type === 'electronic') {
+                const osc = audioCtx.createOscillator();
+                let freq = 400; let vol = 0.1;
+                if (stepType === 'accent') { freq = 1500; vol = 0.4; }
+                else if (stepType === 'beat') { freq = 800; vol = 0.2; }
+                osc.frequency.setValueAtTime(freq, time);
+                mainGain.gain.setValueAtTime(vol, time);
+                mainGain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+                osc.connect(mainGain);
+                osc.start(time); osc.stop(time + 0.05);
+            } else if (type === 'woodblock') {
+                const osc = audioCtx.createOscillator();
+                let freq = stepType === 'accent' ? 1200 : (stepType === 'beat' ? 900 : 600);
+                osc.frequency.setValueAtTime(freq, time);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.5, time + 0.04);
+                mainGain.gain.setValueAtTime(0.5, time);
+                mainGain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+                osc.connect(mainGain);
+                osc.start(time); osc.stop(time + 0.04);
+            } else if (type === 'taiko') {
+                const lowOsc = audioCtx.createOscillator();
+                const attackOsc = audioCtx.createOscillator();
+                let baseFreq = stepType === 'accent' ? 75 : (stepType === 'beat' ? 65 : 50);
+                let vol = stepType === 'accent' ? 0.9 : (stepType === 'beat' ? 0.6 : 0.3);
+                lowOsc.frequency.setValueAtTime(baseFreq, time);
+                lowOsc.frequency.exponentialRampToValueAtTime(baseFreq * 0.6, time + 0.2);
+                attackOsc.type = 'triangle';
+                attackOsc.frequency.setValueAtTime(baseFreq * 4, time);
+                attackOsc.frequency.exponentialRampToValueAtTime(1, time + 0.05);
+                mainGain.gain.setValueAtTime(vol, time);
+                mainGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+                lowOsc.connect(mainGain); attackOsc.connect(mainGain);
+                lowOsc.start(time); attackOsc.start(time);
+                lowOsc.stop(time + 0.2); attackOsc.stop(time + 0.2);
+            } else if (type === 'drumkit') {
+                if (stepType !== 'sub') {
+                    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+                    const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+                    const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass';
+                    filter.frequency.setValueAtTime(stepType === 'accent' ? 1500 : 2500, time);
+                    const g = audioCtx.createGain(); g.gain.setValueAtTime(stepType === 'accent' ? 0.3 : 0.15, time);
+                    g.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+                    noise.connect(filter); filter.connect(g); g.connect(mainGain);
+                    noise.start(time);
+                } else {
+                    const osc = audioCtx.createOscillator();
+                    osc.frequency.setValueAtTime(400, time);
+                    mainGain.gain.setValueAtTime(0.05, time);
+                    mainGain.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+                    osc.connect(mainGain); osc.start(time); osc.stop(time + 0.02);
+                }
+            }
+        }
+
+        function scheduleNote(step, time) {
+            const beats = parseInt(timeSigEl.value);
+            const subs = parseInt(subDivEl.value);
+            const totalSteps = beats * subs;
+            const currentStepInMeasure = step % totalSteps;
+            const isMainBeat = currentStepInMeasure % subs === 0;
+            const isAccent = currentStepInMeasure === 0;
+
+            let type = isAccent ? 'accent' : (isMainBeat ? 'beat' : 'sub');
+            playSound(time, type);
+
+            const delay = (time - audioCtx.currentTime) * 1000;
+            setTimeout(() => {
+                if (!isPlaying) return;
+                const allDots = dotsContainer.querySelectorAll('.dot, .sub-dot');
+                allDots.forEach(dot => {
+                    const dotStep = parseInt(dot.dataset.step);
+                    const isActive = dotStep === currentStepInMeasure;
+                    dot.classList.toggle('active', isActive);
+                    if (dot.classList.contains('dot')) {
+                        dot.classList.toggle('accent', dotStep === 0 && isActive);
+                    }
+                });
+            }, delay);
+        }
+
+        timerWorker.onmessage = (e) => {
+            if (e.data === "tick") {
+                const subs = parseInt(subDivEl.value);
+                const stepInterval = (60.0 / bpm) / subs;
+                while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                    scheduleNote(currentStep, nextNoteTime);
+                    nextNoteTime += stepInterval;
+                    currentStep++;
+                }
+            }
+        };
+
+        toggleBtn.onclick = () => {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                nextNoteTime = audioCtx.currentTime + 0.05;
+                currentStep = 0;
+                timerWorker.postMessage("start");
+                toggleBtn.textContent = "停止練習";
+                toggleBtn.classList.add("stop");
+            } else {
+                timerWorker.postMessage("stop");
+                toggleBtn.textContent = "開始練習";
+                toggleBtn.classList.remove("stop");
+                document.querySelectorAll('.dot, .sub-dot').forEach(d => d.classList.remove('active', 'accent'));
+            }
+        };
+
+        bpmSlider.oninput = () => { bpm = bpmSlider.value; bpmText.textContent = bpm; };
+        timeSigEl.onchange = initDots;
+        subDivEl.onchange = initDots;
+        initDots();
+    </script>
+</body>
+</html>
