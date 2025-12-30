@@ -571,12 +571,28 @@
         }
 
         function updateUI(r, b, time) {
-            const delay = (time - audioCtx.currentTime) * 1000;
-            setTimeout(() => {
+            // 确保时间不会太早，使用当前音频上下文时间作为基准
+            const scheduleTime = Math.max(time, audioCtx.currentTime);
+            const delay = (scheduleTime - audioCtx.currentTime) * 1000;
+            
+            // 使用 requestAnimationFrame 来确保更精确的时间同步
+            if (delay <= 0) {
+                // 如果时间已过或非常接近，立即更新
                 if (!isPlaying || isCountingIn) return;
                 document.querySelectorAll('.editor-row').forEach((row, idx) => { if (idx === r) row.classList.add('playing-row'); else row.classList.remove('playing-row'); });
-                clearPlaybackUI(); const el = document.getElementById(`beat-${r}-${b}`); if (el) el.classList.add('playing-now');
-            }, Math.max(0, delay));
+                clearPlaybackUI(); 
+                const el = document.getElementById(`beat-${r}-${b}`); 
+                if (el) el.classList.add('playing-now');
+            } else {
+                // 使用 setTimeout，但确保延迟计算准确
+                setTimeout(() => {
+                    if (!isPlaying || isCountingIn) return;
+                    document.querySelectorAll('.editor-row').forEach((row, idx) => { if (idx === r) row.classList.add('playing-row'); else row.classList.remove('playing-row'); });
+                    clearPlaybackUI(); 
+                    const el = document.getElementById(`beat-${r}-${b}`); 
+                    if (el) el.classList.add('playing-now');
+                }, Math.max(0, Math.round(delay)));
+            }
         }
 
         function drawNoteHead(ctx, x, y, color = '#1e293b') { ctx.save(); ctx.fillStyle = color; ctx.translate(x, y); ctx.rotate(-0.25); ctx.beginPath(); ctx.ellipse(0, 0, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
