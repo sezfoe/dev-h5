@@ -34,12 +34,15 @@
         
         .controls {
             padding: 15px 20px; background: var(--panel);
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; flex-direction: column;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             position: sticky; top: 0; z-index: 100;
-            flex-wrap: wrap; gap: 15px;
+            gap: 12px;
         }
-        .actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .controls-header {
+            display: flex; justify-content: flex-start; align-items: center;
+        }
+        .actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; justify-content: flex-start; }
         .control-group { display: flex; align-items: center; gap: 10px; }
         
         .label-text { font-size: 14px; color: #94a3b8; font-weight: bold; white-space: nowrap; }
@@ -54,7 +57,7 @@
         .note-selector {
             display: flex; gap: 8px; overflow-x: auto; padding: 6px 0;
             scrollbar-width: thin; scrollbar-color: var(--focus) transparent;
-            border-top: 1px solid #334155;
+            justify-content: flex-start;
         }
         .note-chip {
             flex: 0 0 auto; background: #334155; border: 1px solid #475569;
@@ -169,7 +172,12 @@
 <body>
 
     <div class="controls">
-        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: 1px;">DRUM BEAT <span style="color:var(--primary)">DEV</span></div>
+        <!-- 第一排：標題 -->
+        <div class="controls-header">
+            <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: 1px;">DRUM BEAT <span style="color:var(--primary)">DEV</span></div>
+        </div>
+        
+        <!-- 第二排：控制項 -->
         <div class="actions">
             <div class="control-group">
                 <span class="label-text">音色:</span>
@@ -202,7 +210,8 @@
             </div>
             <button id="playBtn" class="btn-play">播放</button>
         </div>
-         <!-- 音符選擇器 (Note ID Selector) -->
+        
+        <!-- 第三排：音符選擇器 -->
         <div class="note-selector" id="noteSelector">
             <div class="note-chip active" data-id="11">4分</div>
             <div class="note-chip" data-id="12">4分休止</div>
