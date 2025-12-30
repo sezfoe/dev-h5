@@ -77,7 +77,7 @@
         .random-chip {
             padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;
             color: #94a3b8; transition: all 0.2s; user-select: none; white-space: nowrap;
-            min-height: 36px; display: flex; align-items: center; justify-content: center;
+            min-height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center;
         }
         .random-chip.selected { background: var(--focus); color: white; }
 
@@ -89,6 +89,11 @@
             min-height: 42px;
         }
         .btn-play.playing { background: var(--accent-ui); }
+        .btn-play.disabled {
+            background: #94a3b8; color: #64748b; cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+        .btn-loop { margin-left: 10px; }
 
         .btn-random {
             background: #6366f1; color: white; border: none;
@@ -120,6 +125,7 @@
             max-width: calc((var(--measure-width) * 4) + (var(--border-width) * 3) + 12px); 
             width: fit-content;
             box-sizing: border-box;
+            justify-content: flex-start;
         }
 
         .measure {
@@ -158,6 +164,25 @@
             width: 45px; height: 45px; border-radius: 50%; border: 2px dashed #475569;
             background: transparent; color: #475569; font-size: 1.5rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center; margin: 10px 0 30px 0;
+        }
+        
+        .measure-buttons {
+            display: flex; flex-direction: row; gap: var(--gap);
+            align-items: center;
+        }
+        
+        .btn-add-measure, .btn-remove-measure {
+            width: 24px; height: 24px;
+            border-radius: 0; border: 2px dashed #475569;
+            background: transparent; color: #475569; font-size: 0.8rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; box-sizing: border-box;
+        }
+        .btn-add-measure:hover {
+            background: rgba(71, 85, 105, 0.1); border-color: var(--primary); color: var(--primary);
+        }
+        .btn-remove-measure:hover {
+            background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444;
         }
 
         #countInOverlay {
@@ -209,6 +234,7 @@
                 <input type="range" id="bpmSlider" min="40" max="220" step="5" value="120" style="width: 150px; accent-color: var(--primary); height: 8px;">
             </div>
             <button id="playBtn" class="btn-play">播放</button>
+            <button id="loopBtn" class="btn-play btn-loop">循環</button>
         </div>
         
         <!-- 第三排：音符選擇器 -->
@@ -239,12 +265,16 @@
 
         let audioCtx = null, isPlaying = false, nextNoteTime = 0.0, currentGlobalStep = 0;
         let isCountingIn = false, countInStep = 0;
+        let isLoopMode = false; // 循環播放模式
 
         const rowsContainer = document.getElementById('rowsContainer'), addRowBtn = document.getElementById('addRowBtn');
-        const playBtn = document.getElementById('playBtn'), bpmSlider = document.getElementById('bpmSlider'), bpmValue = document.getElementById('bpmValue');
+        const playBtn = document.getElementById('playBtn'), loopBtn = document.getElementById('loopBtn');
+        const bpmSlider = document.getElementById('bpmSlider'), bpmValue = document.getElementById('bpmValue');
         const soundSelect = document.getElementById('soundSelect'), accentSoundSelect = document.getElementById('accentSoundSelect');
         const randomOptionsContainer = document.getElementById('randomOptionsContainer'), randomFillBtn = document.getElementById('randomFillBtn');
-        const totalBeats = 16, maxRows = 16; 
+        const beatsPerMeasure = 4; // 每個小節 4 拍
+        const maxRows = 16; // 最大句段數
+        const maxMeasures = 16; // 每個句段最大小節數 
         
         const SERIES_MAP = {
             1: [11], 2: [21, 22, 23], 3: [31, 32, 33, 34], 4: [41, 42, 43, 44, 45],
@@ -252,7 +282,7 @@
         };
 
         let focusState = { row: 0, beat: 0 };
-        let scoreData = [new Array(totalBeats).fill(0)];
+        let scoreData = [new Array(beatsPerMeasure).fill(0)]; // 預設一個小節（4拍）
         let selectedNoteId = null; // 當前選中的音符 ID
 
         // 定義循環輸入規則
@@ -271,9 +301,33 @@
             initRandomToggles();
             initNoteSelector();
             bpmSlider.oninput = (e) => { bpmValue.textContent = e.target.value; };
-            addRowBtn.onclick = () => { if (scoreData.length < maxRows) { scoreData.push(new Array(totalBeats).fill(0)); renderRows(); } };
-            playBtn.onclick = togglePlayback;
+            addRowBtn.onclick = () => { if (scoreData.length < maxRows) { scoreData.push(new Array(beatsPerMeasure).fill(0)); renderRows(); } };
+            playBtn.onclick = () => { 
+                isLoopMode = false; 
+                togglePlayback(); 
+            };
+            loopBtn.onclick = () => { 
+                isLoopMode = true; 
+                togglePlayback(); 
+            };
             randomFillBtn.onclick = handleRandomFill;
+        }
+
+        function updateButtonStates() {
+            // 只有在播放时才设置互斥状态
+            if (isPlaying) {
+                if (isLoopMode) {
+                    playBtn.classList.add('disabled');
+                    loopBtn.classList.remove('disabled');
+                } else {
+                    playBtn.classList.remove('disabled');
+                    loopBtn.classList.add('disabled');
+                }
+            } else {
+                // 停止时，两个按钮都亮
+                playBtn.classList.remove('disabled');
+                loopBtn.classList.remove('disabled');
+            }
         }
 
         function initNoteSelector() {
@@ -298,7 +352,7 @@
             const selectedSeries = Array.from(randomOptionsContainer.querySelectorAll('.random-chip.selected')).map(chip => chip.getAttribute('data-value'));
             if (selectedSeries.length === 0) return;
             let pool = []; selectedSeries.forEach(s => { pool = pool.concat(SERIES_MAP[s]); });
-            scoreData.forEach((rowData) => { for (let i = 0; i < totalBeats; i++) { rowData[i] = pool[Math.floor(Math.random() * pool.length)]; } });
+            scoreData.forEach((rowData) => { for (let i = 0; i < rowData.length; i++) { rowData[i] = pool[Math.floor(Math.random() * pool.length)]; } });
             renderRows();
         }
 
@@ -312,17 +366,24 @@
                 const overlay = document.getElementById('countInOverlay');
                 if (overlay) overlay.style.display = 'flex';
                 timerWorker.postMessage("start");
-                playBtn.classList.add('playing'); playBtn.textContent = "停止";
+                if (isLoopMode) {
+                    loopBtn.classList.add('playing'); loopBtn.textContent = "停止";
+                } else {
+                    playBtn.classList.add('playing'); playBtn.textContent = "停止";
+                }
+                updateButtonStates(); // 更新按钮状态，使另一个按钮灰阶
             } else { stopPlayback(); }
         }
 
         function stopPlayback() {
             isPlaying = false; isCountingIn = false;
             timerWorker.postMessage("stop");
-            playBtn.classList.remove('playing'); playBtn.textContent = "播放"; 
+            playBtn.classList.remove('playing'); playBtn.textContent = "播放";
+            loopBtn.classList.remove('playing'); loopBtn.textContent = "循環";
             const overlay = document.getElementById('countInOverlay');
             if (overlay) overlay.style.display = 'none';
             clearPlaybackUI(); resetRowStyles();
+            updateButtonStates();
         }
 
         function clearPlaybackUI() { document.querySelectorAll('.beat-box').forEach(el => el.classList.remove('playing-now')); }
@@ -345,9 +406,31 @@
         };
 
         function processSequenceStep(dur) {
-            const totalStepsInSequence = totalBeats * scoreData.length;
-            if (currentGlobalStep >= totalStepsInSequence) { stopPlayback(); return; }
-            const r = Math.floor(currentGlobalStep / totalBeats), b = currentGlobalStep % totalBeats;
+            // 計算總步數：所有句段的所有拍數總和
+            const totalStepsInSequence = scoreData.reduce((sum, rowData) => sum + rowData.length, 0);
+            
+            // 如果是循環模式且到達末尾，重置到開始
+            if (currentGlobalStep >= totalStepsInSequence) {
+                if (isLoopMode) {
+                    currentGlobalStep = 0;
+                } else {
+                    stopPlayback(); 
+                    return;
+                }
+            }
+            
+            // 找到當前步數對應的句段和拍數
+            let stepCount = 0;
+            let r = 0, b = 0;
+            for (let i = 0; i < scoreData.length; i++) {
+                if (currentGlobalStep < stepCount + scoreData[i].length) {
+                    r = i;
+                    b = currentGlobalStep - stepCount;
+                    break;
+                }
+                stepCount += scoreData[i].length;
+            }
+            
             scheduleStep(r, b, nextNoteTime, dur); currentGlobalStep++;
         }
 
@@ -445,31 +528,97 @@
                 const head = document.createElement('div'); head.className = 'row-header';
                 const lab = document.createElement('div'); lab.className = 'row-label'; lab.textContent = `句段 ${rI+1}`;
                 head.appendChild(lab);
+                
+                // 添加增加/刪除小節的按鈕容器到 row-header
+                const measureButtonsContainer = document.createElement('div');
+                measureButtonsContainer.className = 'measure-buttons';
+                
+                // 添加增加小節的按鈕
+                if (rowData.length < maxMeasures * beatsPerMeasure) {
+                    const addMeasureBtn = document.createElement('button');
+                    addMeasureBtn.className = 'btn-add-measure';
+                    addMeasureBtn.textContent = '+';
+                    addMeasureBtn.title = '增加小節';
+                    addMeasureBtn.onclick = () => {
+                        // 增加一個小節（4拍）
+                        for (let i = 0; i < beatsPerMeasure; i++) {
+                            scoreData[rI].push(0);
+                        }
+                        renderRows();
+                    };
+                    measureButtonsContainer.appendChild(addMeasureBtn);
+                }
+                
+                // 添加刪除小節的按鈕（當小節數大於1時顯示）
+                const currentMeasureCount = Math.ceil(rowData.length / beatsPerMeasure);
+                if (currentMeasureCount > 1) {
+                    const removeMeasureBtn = document.createElement('button');
+                    removeMeasureBtn.className = 'btn-remove-measure';
+                    removeMeasureBtn.textContent = '−';
+                    removeMeasureBtn.title = '刪除小節';
+                    removeMeasureBtn.onclick = () => {
+                        // 刪除最後一個小節（4拍）
+                        const removeCount = Math.min(beatsPerMeasure, rowData.length);
+                        scoreData[rI].splice(rowData.length - removeCount, removeCount);
+                        // 確保至少保留一個小節
+                        if (scoreData[rI].length === 0) {
+                            for (let i = 0; i < beatsPerMeasure; i++) {
+                                scoreData[rI].push(0);
+                            }
+                        }
+                        // 調整焦點位置，確保不超出範圍
+                        if (focusState.row === rI && focusState.beat >= scoreData[rI].length) {
+                            focusState.beat = Math.max(0, scoreData[rI].length - 1);
+                        }
+                        renderRows();
+                    };
+                    measureButtonsContainer.appendChild(removeMeasureBtn);
+                }
+                
+                if (measureButtonsContainer.children.length > 0) {
+                    head.appendChild(measureButtonsContainer);
+                }
+                
                 if (scoreData.length > 1) { const rm = document.createElement('button'); rm.className = 'btn-remove'; rm.textContent = '×'; rm.onclick = () => { scoreData.splice(rI,1); renderRows(); }; head.appendChild(rm); }
                 row.appendChild(head);
                 const strip = document.createElement('div'); strip.className = 'editor-strip';
-                for (let m = 0; m < 4; m++) {
+                
+                // 動態渲染小節，根據 rowData 的長度
+                const measureCount = Math.ceil(rowData.length / beatsPerMeasure);
+                for (let m = 0; m < measureCount; m++) {
                     const meas = document.createElement('div'); meas.className = 'measure';
                     const inf = document.createElement('div'); inf.className = 'beat-info'; inf.textContent = `小節 ${m+1}`; meas.appendChild(inf);
                     const bR = document.createElement('div'); bR.className = 'measure-beats';
-                    for (let b = 0; b < 4; b++) {
-                        const bIdx = m * 4 + b, box = document.createElement('div');
+                    for (let b = 0; b < beatsPerMeasure; b++) {
+                        const bIdx = m * beatsPerMeasure + b;
+                        const box = document.createElement('div');
                         box.className = `beat-box`; if(rI===focusState.row && bIdx===focusState.beat) box.classList.add('active');
                         box.id = `beat-${rI}-${bIdx}`;
-                        if (rI === 0 && bIdx === 0) { const over = document.createElement('div'); over.id = 'countInOverlay'; box.appendChild(over); }
-                        const can = document.createElement('canvas'); can.width = 80; can.height = 80;
-                        box.appendChild(can); box.onclick = () => setFocus(rI, bIdx); bR.appendChild(box);
-                        requestAnimationFrame(() => drawNote(can.getContext('2d'), rowData[bIdx]));
+                        if (bIdx < rowData.length) {
+                            // 如果數據存在，顯示音符
+                            if (rI === 0 && bIdx === 0) { const over = document.createElement('div'); over.id = 'countInOverlay'; box.appendChild(over); }
+                            const can = document.createElement('canvas'); can.width = 80; can.height = 80;
+                            box.appendChild(can); box.onclick = () => setFocus(rI, bIdx); 
+                            requestAnimationFrame(() => drawNote(can.getContext('2d'), rowData[bIdx]));
+                        } else {
+                            // 如果數據不存在，顯示空白格子（用於最後一個不完整的小節）
+                            box.style.opacity = '0.3';
+                            box.style.pointerEvents = 'none';
+                        }
+                        bR.appendChild(box);
                     }
                     meas.appendChild(bR); strip.appendChild(meas);
                 }
+                
                 row.appendChild(strip); rowsContainer.appendChild(row);
             });
         }
 
         function setFocus(r, b) { 
             r = (r + scoreData.length) % scoreData.length; 
-            b = (b + totalBeats) % totalBeats; 
+            if (!scoreData[r]) return;
+            const maxBeat = scoreData[r].length;
+            b = (b + maxBeat) % maxBeat; 
             
             // 如果有選中的音符，執行循環輸入
             if (selectedNoteId !== null) {
@@ -499,7 +648,7 @@
 
         window.onkeydown = (e) => {
             if (e.code === 'Space') { e.preventDefault(); togglePlayback(); return; }
-            if (!scoreData[focusState.row]) return;
+            if (!scoreData[focusState.row] || focusState.beat >= scoreData[focusState.row].length) return;
             const cur = scoreData[focusState.row][focusState.beat]; let val = -1;
             if (e.key === '1') val = (cur === 11) ? 12 : 11;
             else if (e.key === '2') { if (cur === 21) val = 22; else if (cur === 22) val = 23; else val = 21; }
@@ -515,6 +664,11 @@
             if (e.key === 'ArrowLeft') { e.preventDefault(); setFocus(focusState.row, focusState.beat - 1); }
             if (e.key === 'ArrowUp') { e.preventDefault(); setFocus(focusState.row - 1, focusState.beat); }
             if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(focusState.row + 1, focusState.beat); }
+            // 確保焦點不超出當前句段的範圍
+            if (scoreData[focusState.row] && focusState.beat >= scoreData[focusState.row].length) {
+                focusState.beat = scoreData[focusState.row].length - 1;
+                renderRows();
+            }
         };
 
         initApp();
