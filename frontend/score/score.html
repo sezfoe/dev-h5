@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>鼓譜編輯器 - 16行播放模式</title>
+    <title>鼓譜編輯器 - 倒數修正版</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -76,11 +76,22 @@
         }
 
         #countInOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.85); border-radius: 12px;
-            display: none; align-items: center; justify-content: center;
-            z-index: 50; color: white; font-size: 5rem; font-weight: 900;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(15, 23, 42, 0.7); 
+            border-radius: 8px;
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            z-index: 50; 
+            color: #fff; 
+            font-size: 3rem; 
+            font-weight: 900;
             pointer-events: none;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
         .measure {
@@ -97,11 +108,12 @@
             border: 2px solid #e2e8f0; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+            overflow: hidden;
         }
         .beat-box.active { border-color: var(--focus); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25); background: #f0f7ff; }
         .beat-box.playing-now { background: rgba(16, 185, 129, 0.25) !important; border-color: var(--primary) !important; transform: scale(1.05); z-index: 10; }
         
-        .row-actions { display: flex; gap: 8px; align-items: center; }
+        .row-actions { display: flex; gap: 8px; align-items: center; width: 32px; }
         .btn-remove {
             width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent-ui);
             background: transparent; color: var(--accent-ui); font-size: 1.2rem; cursor: pointer;
@@ -116,39 +128,14 @@
             display: flex; align-items: center; justify-content: center; margin-top: 10px;
         }
 
-        /* 說明框樣式 */
         .instruction-footer {
-            background: var(--panel);
-            border-top: 1px solid #475569;
-            padding: 20px;
-            margin-top: 40px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            width: 100%;
-            box-sizing: border-box;
+            background: var(--panel); border-top: 1px solid #475569; padding: 20px;
+            margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; width: 100%; box-sizing: border-box;
         }
-        .instruction-item {
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            line-height: 1.6;
-        }
-        .instruction-item h4 {
-            margin: 0 0 8px 0;
-            color: var(--primary);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        kbd {
-            background: #0f172a;
-            border: 1px solid #475569;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-family: monospace;
-            color: #fff;
-            margin: 0 2px;
-        }
+        .instruction-item { font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
+        .instruction-item h4 { margin: 0 0 8px 0; color: var(--primary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        kbd { background: #0f172a; border: 1px solid #475569; border-radius: 4px; padding: 2px 6px; font-family: monospace; color: #fff; margin: 0 2px; }
     </style>
 </head>
 <body>
@@ -193,13 +180,12 @@
     </div>
 
     <div class="main-content">
-        <div id="rowsContainer" style="position: relative;">
+        <div id="rowsContainer">
             <!-- 編輯器內容 -->
         </div>
         <button class="btn-add" id="addRowBtn">+</button>
     </div>
 
-    <!-- 按鍵說明框 -->
     <div class="instruction-footer">
         <div class="instruction-item">
             <h4>基礎操作</h4>
@@ -224,7 +210,7 @@
         <div class="instruction-item">
             <h4>系統限制</h4>
             <div>最大行數：16 行</div>
-            <div>自動倒數：播放前有 4 拍預備</div>
+            <div>自動倒數：播放前有 4 拍預備 (顯示於 L1 第一格)</div>
             <div>隨機填入：僅填入勾選的系列類型</div>
         </div>
     </div>
@@ -267,9 +253,7 @@
 
         function initRandomToggles() {
             randomOptionsContainer.querySelectorAll('.random-chip').forEach(chip => {
-                chip.onclick = () => {
-                    chip.classList.toggle('selected');
-                };
+                chip.onclick = () => { chip.classList.toggle('selected'); };
             });
         }
 
@@ -294,13 +278,11 @@
             if (!isPlaying) {
                 isPlaying = true;
                 isCountingIn = true;
-                countInStep = 0;
+                countInStep = 0; // 從 0 開始，對應顯示 4
                 currentGlobalStep = 0; 
                 nextNoteTime = audioCtx.currentTime + 0.1;
-                
                 const overlay = document.getElementById('countInOverlay');
                 if (overlay) overlay.style.display = 'flex';
-                
                 timerWorker.postMessage("start");
                 playBtn.classList.add('playing'); playBtn.textContent = "停止";
             } else {
@@ -314,10 +296,8 @@
             timerWorker.postMessage("stop");
             playBtn.classList.remove('playing'); 
             playBtn.textContent = "播放"; 
-            
             const overlay = document.getElementById('countInOverlay');
             if (overlay) overlay.style.display = 'none';
-            
             clearPlaybackUI();
             resetRowStyles();
         }
@@ -327,81 +307,72 @@
         }
 
         function resetRowStyles() {
-            document.querySelectorAll('.editor-row').forEach(row => {
-                row.classList.remove('playing-row');
-            });
+            document.querySelectorAll('.editor-row').forEach(row => { row.classList.remove('playing-row'); });
         }
 
         timerWorker.onmessage = (e) => {
             if (e.data === "tick") {
                 if (!isPlaying) return;
                 const bpm = parseInt(bpmSlider.value), beatDur = 60.0 / bpm;
-                
                 while (nextNoteTime < audioCtx.currentTime + 0.1) {
                     if (isCountingIn) {
-                        scheduleCountIn(countInStep, nextNoteTime);
-                        countInStep++;
-                        if (countInStep >= 4) {
+                        // 當 countInStep 為 0, 1, 2, 3 時，分別對應顯示 4, 3, 2, 1 並播放聲音
+                        if (countInStep < 4) {
+                            scheduleCountIn(countInStep, nextNoteTime);
+                            countInStep++;
+                        } else {
+                            // 第 5 拍（countInStep = 4）那一瞬間關閉遮罩並進入正式播放
                             isCountingIn = false;
+                            updateCountInUI(null);
+                            processSequenceStep(beatDur);
                         }
                     } else {
-                        updateCountInUI(null);
-
-                        const totalStepsInSequence = totalBeats * scoreData.length;
-                        
-                        if (currentGlobalStep >= totalStepsInSequence) {
-                            stopPlayback();
-                            return;
-                        }
-
-                        const currentRowIndex = Math.floor(currentGlobalStep / totalBeats);
-                        const currentBeatInRow = currentGlobalStep % totalBeats;
-
-                        scheduleStep(currentRowIndex, currentBeatInRow, nextNoteTime, beatDur);
-                        
-                        currentGlobalStep++;
+                        processSequenceStep(beatDur);
                     }
                     nextNoteTime += beatDur; 
                 }
             }
         };
 
+        function processSequenceStep(dur) {
+            const totalStepsInSequence = totalBeats * scoreData.length;
+            if (currentGlobalStep >= totalStepsInSequence) { stopPlayback(); return; }
+            const currentRowIndex = Math.floor(currentGlobalStep / totalBeats);
+            const currentBeatInRow = currentGlobalStep % totalBeats;
+            scheduleStep(currentRowIndex, currentBeatInRow, nextNoteTime, dur);
+            currentGlobalStep++;
+        }
+
         function scheduleCountIn(step, time) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(1200, time);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
             gain.gain.setValueAtTime(0.4, time);
             gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.1);
-
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(time); osc.stop(time + 0.1);
+            
             const countText = (4 - step).toString();
             const delay = (time - audioCtx.currentTime) * 1000;
-            setTimeout(() => {
-                if (isCountingIn && isPlaying) {
-                    updateCountInUI(countText);
-                }
+            setTimeout(() => { 
+                if (isCountingIn && isPlaying) updateCountInUI(countText); 
             }, Math.max(0, delay));
         }
 
         function updateCountInUI(text) {
             const overlay = document.getElementById('countInOverlay');
             if (!overlay) return;
-            if (text === null) {
-                overlay.style.display = 'none';
-            } else {
-                overlay.style.display = 'flex';
-                overlay.textContent = text;
+            if (text === null) { 
+                overlay.style.display = 'none'; 
+            } else { 
+                overlay.style.display = 'flex'; 
+                overlay.textContent = text; 
             }
         }
 
         function playSound(time, freq, volume = 0.3, soundType = 'snap', isAccent = false) {
             const finalVol = isAccent ? volume * 1.6 : volume;
             const finalFreq = isAccent ? freq * 1.2 : freq;
-
             if (soundType === 'noise') {
                 const bufferSize = audioCtx.sampleRate * 0.1;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -411,85 +382,47 @@
                 noiseSource.buffer = buffer;
                 const gainNode = audioCtx.createGain();
                 const noiseFilter = audioCtx.createBiquadFilter();
-                noiseFilter.type = 'highpass';
-                noiseFilter.frequency.value = finalFreq * 3;
-                noiseSource.connect(noiseFilter);
-                noiseFilter.connect(gainNode);
+                noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
+                noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
                 gainNode.gain.setValueAtTime(finalVol * 0.4, time);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-                noiseSource.start(time);
-                noiseSource.stop(time + 0.1);
+                noiseSource.start(time); noiseSource.stop(time + 0.1);
                 gainNode.connect(audioCtx.destination);
                 return;
             }
-
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(finalFreq * 2, time);
+            osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, time);
             gainNode.gain.setValueAtTime(finalVol * 0.5, time);
             gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            osc.start(time);
-            osc.stop(time + 0.1);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+            osc.start(time); osc.stop(time + 0.1);
         }
 
         function scheduleStep(r, b, time, dur) {
             const type = scoreData[r][b];
             updateUI(r, b, time);
             if (type === 0 || type === 12) return;
-            
-            const baseFreq = 220; 
-            const p16 = [0, 0.25, 0.5, 0.75]; 
-            const currentBaseSound = soundSelect.value;
-            const currentAccentSound = accentSoundSelect.value;
-
-            const play = (t, isAcc = false) => {
-                const sType = isAcc ? currentAccentSound : currentBaseSound;
-                playSound(t, baseFreq, 0.3, sType, isAcc);
-            };
-
+            const baseFreq = 220, p16 = [0, 0.25, 0.5, 0.75]; 
+            const currentBaseSound = soundSelect.value, currentAccentSound = accentSoundSelect.value;
+            const play = (t, isAcc = false) => { playSound(t, baseFreq, 0.3, isAcc ? currentAccentSound : currentBaseSound, isAcc); };
             if (type === 11) play(time);
-            else if (type === 21) play(time); 
-            else if (type === 22) play(time + dur * 0.5); 
-            else if (type === 23) { play(time); play(time + dur * 0.5); }
+            else if (type === 21) play(time); else if (type === 22) play(time + dur * 0.5); else if (type === 23) { play(time); play(time + dur * 0.5); }
             else if (type >= 31 && type <= 34) play(time + dur * p16[type - 31]);
-            else if (type >= 41 && type <= 45) {
-                const map = { 41:[0,1], 42:[1,2], 43:[2,3], 44:[0,3], 45:[1,3] };
-                map[type].forEach(idx => play(time + dur * p16[idx]));
-            }
-            else if (type >= 51 && type <= 55) {
-                const map = { 51:[0,2,3], 52:[0,1,2], 53:[0,1,3], 54:[1,2,3], 55:[0,1,2,3] };
-                map[type].forEach(idx => play(time + dur * p16[idx]));
-            }
-            else if (type >= 61 && type <= 64) {
-                const accentIdx = type - 61; 
-                p16.forEach((off, i) => play(time + dur * off, i === accentIdx));
-            }
-            else if (type >= 71 && type <= 75) {
-                const map = { 71:[0,1], 72:[1,2], 73:[2,3], 74:[0,3], 75:[1,3] };
-                p16.forEach((off, i) => play(time + dur * off, map[type].includes(i)));
-            }
-            else if (type >= 81 && type <= 85) {
-                const map = { 81:[0,2,3], 82:[0,1,2], 83:[0,1,3], 84:[1,2,3], 85:[0,1,2,3] };
-                p16.forEach((off, i) => play(time + dur * off, map[type].includes(i)));
-            }
+            else if (type >= 41 && type <= 45) { const map = { 41:[0,1], 42:[1,2], 43:[2,3], 44:[0,3], 45:[1,3] }; map[type].forEach(idx => play(time + dur * p16[idx])); }
+            else if (type >= 51 && type <= 55) { const map = { 51:[0,2,3], 52:[0,1,2], 53:[0,1,3], 54:[1,2,3], 55:[0,1,2,3] }; map[type].forEach(idx => play(time + dur * p16[idx])); }
+            else if (type >= 61 && type <= 64) { const accentIdx = type - 61; p16.forEach((off, i) => play(time + dur * off, i === accentIdx)); }
+            else if (type >= 71 && type <= 75) { const map = { 71:[0,1], 72:[1,2], 73:[2,3], 74:[0,3], 75:[1,3] }; p16.forEach((off, i) => play(time + dur * off, map[type].includes(i))); }
+            else if (type >= 81 && type <= 85) { const map = { 81:[0,2,3], 82:[0,1,2], 83:[0,1,3], 84:[1,2,3], 85:[0,1,2,3] }; p16.forEach((off, i) => play(time + dur * off, map[type].includes(i))); }
         }
 
         function updateUI(r, b, time) {
             const delay = (time - audioCtx.currentTime) * 1000;
             setTimeout(() => {
                 if (!isPlaying || isCountingIn) return;
-                
                 document.querySelectorAll('.editor-row').forEach((row, idx) => {
-                    if (idx === r) {
-                        row.classList.add('playing-row');
-                    } else {
-                        row.classList.remove('playing-row');
-                    }
+                    if (idx === r) row.classList.add('playing-row'); else row.classList.remove('playing-row');
                 });
-
                 clearPlaybackUI();
                 const el = document.getElementById(`beat-${r}-${b}`);
                 if (el) el.classList.add('playing-now');
@@ -506,8 +439,7 @@
         }
         function drawQuarterRest(ctx, x, y) {
             ctx.save(); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            ctx.beginPath(); ctx.moveTo(x - 4, y - 10); ctx.lineTo(x + 2, y - 4);
-            ctx.lineTo(x - 4, y + 2); ctx.lineTo(x + 2, y + 8);
+            ctx.beginPath(); ctx.moveTo(x - 4, y - 10); ctx.lineTo(x + 2, y - 4); ctx.lineTo(x - 4, y + 2); ctx.lineTo(x + 2, y + 8);
             ctx.bezierCurveTo(x + 2, y + 11, x - 1, y + 12, x - 4, y + 10); ctx.stroke(); ctx.restore();
         }
         function drawAccent(ctx, x, y) {
@@ -516,8 +448,7 @@
         }
 
         function drawNote(ctx, type) {
-            ctx.clearRect(0, 0, 80, 80);
-            if (type === 0) return;
+            ctx.clearRect(0, 0, 80, 80); if (type === 0) return;
             const baseY = 55, stemTop = 22, center = 40, shortStemBot = 38;
             if (type === 11) { drawNoteHead(ctx, center - 4, baseY); drawStem(ctx, center + 0.5, stemTop, baseY); }
             else if (type === 12) { drawQuarterRest(ctx, center, 40); }
@@ -530,8 +461,7 @@
                 if (type === 22 || type === 23) { drawNoteHead(ctx, p2, baseY); drawStem(ctx, p2+4.5, stemTop, baseY, '#1e293b', 2); } 
                 else { drawStem(ctx, p2+4.5, stemTop, shortStemBot, '#1e293b', 1.5); }
             } else if (type >= 31) { 
-                const positions = [18, 32, 46, 60];
-                let actives = [], accents = [];
+                const positions = [18, 32, 46, 60]; let actives = [], accents = [];
                 if (type >= 31 && type <= 34) actives = [type - 31];
                 else if (type === 41) actives = [0, 1]; else if (type === 42) actives = [1, 2]; else if (type === 43) actives = [2, 3]; else if (type === 44) actives = [0, 3]; else if (type === 45) actives = [1, 3];
                 else if (type === 51) actives = [0, 2, 3]; else if (type === 52) actives = [0, 1, 2]; else if (type === 53) actives = [0, 1, 3]; else if (type === 54) actives = [1, 2, 3]; else if (type === 55) actives = [0, 1, 2, 3];
@@ -557,19 +487,13 @@
                 const rowDiv = document.createElement('div'); rowDiv.className = 'editor-row';
                 const label = document.createElement('div'); label.className = 'row-label'; label.textContent = `L${rowIndex+1}`;
                 rowDiv.appendChild(label);
-                const strip = document.createElement('div'); strip.className = 'editor-strip';
                 
-                if (rowIndex === 0) {
-                    const overlay = document.createElement('div');
-                    overlay.id = 'countInOverlay';
-                    strip.appendChild(overlay);
-                }
+                const strip = document.createElement('div'); strip.className = 'editor-strip';
 
                 for (let m = 0; m < 4; m++) {
                     const measureDiv = document.createElement('div'); measureDiv.className = 'measure';
                     const info = document.createElement('div'); info.className = 'beat-info';
-                    info.textContent = `Bar ${m+1}`; 
-                    measureDiv.appendChild(info);
+                    info.textContent = `Bar ${m+1}`; measureDiv.appendChild(info);
                     const beatsRow = document.createElement('div'); beatsRow.className = 'measure-beats';
                     for (let b = 0; b < 4; b++) {
                         const beatIdx = m * 4 + b;
@@ -577,9 +501,15 @@
                         beatBox.className = `beat-box`; 
                         if(rowIndex===focusState.row && beatIdx===focusState.beat) beatBox.classList.add('active');
                         beatBox.id = `beat-${rowIndex}-${beatIdx}`;
+                        
+                        if (rowIndex === 0 && beatIdx === 0) {
+                            const overlay = document.createElement('div');
+                            overlay.id = 'countInOverlay';
+                            beatBox.appendChild(overlay);
+                        }
+
                         const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 80;
-                        beatBox.appendChild(canvas); 
-                        beatBox.onclick = () => setFocus(rowIndex, beatIdx);
+                        beatBox.appendChild(canvas); beatBox.onclick = () => setFocus(rowIndex, beatIdx);
                         beatsRow.appendChild(beatBox);
                         requestAnimationFrame(() => drawNote(canvas.getContext('2d'), rowData[beatIdx]));
                     }
@@ -587,6 +517,7 @@
                     strip.appendChild(measureDiv);
                 }
                 rowDiv.appendChild(strip);
+                
                 const actions = document.createElement('div'); actions.className = 'row-actions';
                 if (scoreData.length > 1) {
                     const rm = document.createElement('button'); rm.className = 'btn-remove'; rm.textContent = '×';
