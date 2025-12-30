@@ -51,18 +51,19 @@
         
          /* 音符選擇列樣式 */
         .note-selector {
-            display: flex; gap: 6px; overflow-x: auto; padding: 4px 0;
+            display: flex; gap: 8px; overflow-x: auto; padding: 6px 0;
             scrollbar-width: thin; scrollbar-color: var(--focus) transparent;
             border-top: 1px solid #334155;
         }
         .note-chip {
             flex: 0 0 auto; background: #334155; border: 1px solid #475569;
-            padding: 6px 12px; border-radius: 6px; cursor: pointer;
-            font-size: 12px; font-weight: bold; color: #cbd5e1; transition: all 0.2s;
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            width: 60px; height: 60px; /* 正方形按鈕 */
+            border-radius: 8px; cursor: pointer;
+            font-size: 13px; font-weight: bold; color: #cbd5e1; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
             user-select: none;
         }
-        .note-chip.active { background: var(--focus); color: white; border-color: #60a5fa; transform: translateY(-2px); }
+        .note-chip.active { background: var(--focus); color: white; border-color: #60a5fa; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3); }
         .note-chip span { font-size: 10px; opacity: 0.8; }
 
         /* 隨機選項多選樣式 */
@@ -193,7 +194,7 @@
             </div>
             <div class="control-group">
                 <span style="font-size: 0.8rem; white-space: nowrap;">BPM: <strong id="bpmValue">120</strong></span>
-                <input type="range" id="bpmSlider" min="40" max="220" step="5" value="120" style="width: 60px; accent-color: var(--primary);">
+                <input type="range" id="bpmSlider" min="40" max="220" step="5" value="120" style="width: 150px; accent-color: var(--primary);">
             </div>
             <button id="playBtn" class="btn-play">播放</button>
         </div>
