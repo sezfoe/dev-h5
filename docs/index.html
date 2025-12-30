@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>鼓譜編輯器 - 音色標籤修正</title>
+    <title>鼓譜編輯器 - 精簡版</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -48,7 +48,24 @@
             background: #334155; color: white; border: 1px solid #475569;
             padding: 5px 8px; border-radius: 6px; outline: none; cursor: pointer; font-size: 14px;
         }
+        
+         /* 音符選擇列樣式 */
+        .note-selector {
+            display: flex; gap: 6px; overflow-x: auto; padding: 4px 0;
+            scrollbar-width: thin; scrollbar-color: var(--focus) transparent;
+            border-top: 1px solid #334155;
+        }
+        .note-chip {
+            flex: 0 0 auto; background: #334155; border: 1px solid #475569;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer;
+            font-size: 12px; font-weight: bold; color: #cbd5e1; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            user-select: none;
+        }
+        .note-chip.active { background: var(--focus); color: white; border-color: #60a5fa; transform: translateY(-2px); }
+        .note-chip span { font-size: 10px; opacity: 0.8; }
 
+        /* 隨機選項多選樣式 */
         .random-options {
             display: flex; gap: 2px; background: #334155; padding: 3px; border-radius: 8px; border: 1px solid #475569;
         }
@@ -142,14 +159,6 @@
             z-index: 50; color: #fff; font-size: 2.5rem; font-weight: 900;
             pointer-events: none; text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
-
-        .instruction-footer {
-            background: var(--panel); border-top: 1px solid #475569; padding: 20px;
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px; width: 100%; box-sizing: border-box;
-        }
-        .instruction-item { font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; }
-        .instruction-item h4 { margin: 0 0 8px 0; color: var(--primary); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -188,22 +197,25 @@
             </div>
             <button id="playBtn" class="btn-play">播放</button>
         </div>
+         <!-- 音符選擇器 (Note ID Selector) -->
+        <div class="note-selector" id="noteSelector">
+            <div class="note-chip active" data-id="11">4分</div>
+            <div class="note-chip" data-id="12">4分休止</div>
+            <div class="note-chip" data-id="21">8分</div>
+            <div class="note-chip" data-id="31">16分單點</div>
+            <div class="note-chip" data-id="41">16分雙點</div>
+            <div class="note-chip" data-id="51">16分三點</div>
+            <div class="note-chip" data-id="55">16分全音</div>
+            <div class="note-chip" data-id="61">16分單重音</div>
+            <div class="note-chip" data-id="71">16分雙重音</div>
+            <div class="note-chip" data-id="81">16分三重音</div>
+            <div class="note-chip" data-id="85">16分全重音</div>
+        </div>
     </div>
 
     <div class="main-content">
         <div id="rowsContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
         <button class="btn-add" id="addRowBtn">+</button>
-    </div>
-
-    <div class="instruction-footer">
-        <div class="instruction-item">
-            <h4>佈局邏輯</h4>
-            <div>一行恆定容納 4 小節。當視窗寬度大於四個小節時，保證第四小節不換行。</div>
-        </div>
-        <div class="instruction-item">
-            <h4>快速鍵</h4>
-            <div>空白鍵播放。數字 1-8 填充節奏。方向鍵選取格子。</div>
-        </div>
     </div>
 
     <script>
@@ -227,14 +239,41 @@
 
         let focusState = { row: 0, beat: 0 };
         let scoreData = [new Array(totalBeats).fill(0)];
+        let selectedNoteId = null; // 當前選中的音符 ID
+
+        // 定義循環輸入規則
+        const NOTE_CYCLES = {
+            21: [21, 22, 23],
+            31: [31, 32, 33, 34],
+            41: [41, 42, 43, 44],
+            51: [51, 52, 53, 54],
+            61: [61, 62, 63, 64],
+            71: [71, 72, 73, 74],
+            81: [81, 82, 83, 84]
+        };
 
         function initApp() {
             renderRows();
             initRandomToggles();
+            initNoteSelector();
             bpmSlider.oninput = (e) => { bpmValue.textContent = e.target.value; };
             addRowBtn.onclick = () => { if (scoreData.length < maxRows) { scoreData.push(new Array(totalBeats).fill(0)); renderRows(); } };
             playBtn.onclick = togglePlayback;
             randomFillBtn.onclick = handleRandomFill;
+        }
+
+        function initNoteSelector() {
+            const noteSelector = document.getElementById('noteSelector');
+            noteSelector.querySelectorAll('.note-chip').forEach(chip => {
+                chip.onclick = () => {
+                    // 移除所有 active 狀態
+                    noteSelector.querySelectorAll('.note-chip').forEach(c => c.classList.remove('active'));
+                    // 設置當前選中的 chip 為 active
+                    chip.classList.add('active');
+                    // 保存選中的音符 ID
+                    selectedNoteId = parseInt(chip.getAttribute('data-id'));
+                };
+            });
         }
 
         function initRandomToggles() {
@@ -409,7 +448,35 @@
             });
         }
 
-        function setFocus(r, b) { r = (r + scoreData.length) % scoreData.length; b = (b + totalBeats) % totalBeats; focusState = { row: r, beat: b }; renderRows(); }
+        function setFocus(r, b) { 
+            r = (r + scoreData.length) % scoreData.length; 
+            b = (b + totalBeats) % totalBeats; 
+            
+            // 如果有選中的音符，執行循環輸入
+            if (selectedNoteId !== null) {
+                const currentValue = scoreData[r][b];
+                const cycle = NOTE_CYCLES[selectedNoteId];
+                
+                if (cycle) {
+                    // 如果當前值在循環範圍內，找到下一個值
+                    const currentIndex = cycle.indexOf(currentValue);
+                    if (currentIndex >= 0) {
+                        // 循環到下一個值
+                        const nextIndex = (currentIndex + 1) % cycle.length;
+                        scoreData[r][b] = cycle[nextIndex];
+                    } else {
+                        // 如果當前值不在循環範圍內，設置為循環的第一個值
+                        scoreData[r][b] = cycle[0];
+                    }
+                } else {
+                    // 如果沒有循環規則，直接設置為選中的值
+                    scoreData[r][b] = selectedNoteId;
+                }
+            }
+            
+            focusState = { row: r, beat: b }; 
+            renderRows(); 
+        }
 
         window.onkeydown = (e) => {
             if (e.code === 'Space') { e.preventDefault(); togglePlayback(); return; }
