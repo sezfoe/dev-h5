@@ -115,6 +115,40 @@
             background: transparent; color: #475569; font-size: 2rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center; margin-top: 10px;
         }
+
+        /* 說明框樣式 */
+        .instruction-footer {
+            background: var(--panel);
+            border-top: 1px solid #475569;
+            padding: 20px;
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .instruction-item {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+        .instruction-item h4 {
+            margin: 0 0 8px 0;
+            color: var(--primary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        kbd {
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            color: #fff;
+            margin: 0 2px;
+        }
     </style>
 </head>
 <body>
@@ -165,6 +199,36 @@
         <button class="btn-add" id="addRowBtn">+</button>
     </div>
 
+    <!-- 按鍵說明框 -->
+    <div class="instruction-footer">
+        <div class="instruction-item">
+            <h4>基礎操作</h4>
+            <div><kbd>Space</kbd> 播放 / 停止</div>
+            <div><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> 移動焦點</div>
+            <div><kbd>BackSpace</kbd> <kbd>Esc</kbd> 清除格點</div>
+        </div>
+        <div class="instruction-item">
+            <h4>節奏類型 (1-4)</h4>
+            <div><kbd>1</kbd> 四分音符 / 休止符</div>
+            <div><kbd>2</kbd> 八分音符切換 (前/後/雙)</div>
+            <div><kbd>3</kbd> 十六分音符 (單點位置)</div>
+            <div><kbd>4</kbd> 十六分音符 (雙點組合)</div>
+        </div>
+        <div class="instruction-item">
+            <h4>進階節奏 (5-8)</h4>
+            <div><kbd>5</kbd> 十六分音符 (三點與全滿)</div>
+            <div><kbd>6</kbd> 16分音符全滿 + 單點重音</div>
+            <div><kbd>7</kbd> 16分音符全滿 + 雙點重音</div>
+            <div><kbd>8</kbd> 16分音符全滿 + 三/四點重音</div>
+        </div>
+        <div class="instruction-item">
+            <h4>系統限制</h4>
+            <div>最大行數：16 行</div>
+            <div>自動倒數：播放前有 4 拍預備</div>
+            <div>隨機填入：僅填入勾選的系列類型</div>
+        </div>
+    </div>
+
     <script>
         const workerCode = `let t=null;self.onmessage=(e)=>{if(e.data==="start")t=setInterval(()=>postMessage("tick"),25);else if(e.data==="stop")clearInterval(t);};`;
         const blob = new Blob([workerCode], { type: 'application/javascript' });
@@ -177,7 +241,7 @@
         const playBtn = document.getElementById('playBtn'), bpmSlider = document.getElementById('bpmSlider'), bpmValue = document.getElementById('bpmValue');
         const soundSelect = document.getElementById('soundSelect'), accentSoundSelect = document.getElementById('accentSoundSelect');
         const randomOptionsContainer = document.getElementById('randomOptionsContainer'), randomFillBtn = document.getElementById('randomFillBtn');
-        const totalBeats = 16, maxRows = 16; // 上限修改為 16
+        const totalBeats = 16, maxRows = 16; 
         
         const SERIES_MAP = {
             1: [11], 2: [21, 22, 23], 3: [31, 32, 33, 34], 4: [41, 42, 43, 44, 45],
@@ -249,7 +313,7 @@
             isCountingIn = false;
             timerWorker.postMessage("stop");
             playBtn.classList.remove('playing'); 
-            playBtn.textContent = "播放"; // 恢復按鈕文字
+            playBtn.textContent = "播放"; 
             
             const overlay = document.getElementById('countInOverlay');
             if (overlay) overlay.style.display = 'none';
