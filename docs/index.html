@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>鼓譜編輯器 - 倒數修正版</title>
+    <title>鼓譜編輯器 - 跨平台自適應版</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -15,32 +15,42 @@
             --box-size: 80px; 
             --measure-border: #94a3b8; 
         }
+        /* 手機端調整變數 */
+        @media (max-width: 768px) {
+            :root {
+                --box-size: 65px;
+            }
+        }
+
         body {
             margin: 0; background: var(--bg); color: var(--text);
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+            display: flex; flex-direction: column; height: 100vh; overflow-x: hidden;
         }
+        
+        /* 控制列自適應換行 */
         .controls {
-            padding: 15px 25px; background: var(--panel);
+            padding: 10px 15px; background: var(--panel);
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             position: sticky; top: 0; z-index: 100;
-            flex-wrap: wrap; gap: 15px;
+            flex-wrap: wrap; gap: 10px;
         }
-        .actions { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
-        .control-group { display: flex; align-items: center; gap: 8px; }
+        .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 6px; }
         
         select {
             background: #334155; color: white; border: 1px solid #475569;
-            padding: 5px 10px; border-radius: 6px; outline: none; cursor: pointer;
+            padding: 5px 8px; border-radius: 6px; outline: none; cursor: pointer; font-size: 14px;
         }
 
         .random-options {
-            display: flex; gap: 4px; background: #334155; padding: 4px; border-radius: 8px; border: 1px solid #475569;
+            display: flex; gap: 2px; background: #334155; padding: 3px; border-radius: 8px; border: 1px solid #475569;
+            overflow-x: auto;
         }
         .random-chip {
-            padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;
-            color: #94a3b8; transition: all 0.2s; user-select: none;
+            padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;
+            color: #94a3b8; transition: all 0.2s; user-select: none; white-space: nowrap;
         }
         .random-chip.selected {
             background: var(--focus); color: white;
@@ -48,117 +58,111 @@
 
         .btn-play {
             background: var(--primary); color: white; border: none;
-            padding: 8px 20px; border-radius: 8px; font-weight: bold;
+            padding: 8px 16px; border-radius: 8px; font-weight: bold;
             cursor: pointer; display: flex; align-items: center; gap: 8px;
-            transition: all 0.2s; min-width: 80px; justify-content: center;
+            transition: all 0.2s; min-width: 70px; justify-content: center;
         }
         .btn-play.playing { background: var(--accent-ui); }
 
         .btn-random {
             background: #6366f1; color: white; border: none;
-            padding: 8px 15px; border-radius: 8px; font-weight: bold;
-            cursor: pointer; transition: all 0.2s;
+            padding: 8px 12px; border-radius: 8px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s; font-size: 13px;
         }
-        .btn-random:hover { background: #4f46e5; }
 
+        /* 核心內容區：支援水平滾動以應對小螢幕 */
         .main-content {
             flex-grow: 1; display: flex; flex-direction: column;
-            align-items: center; padding: 40px 20px;
+            align-items: center; padding: 20px 10px;
+            overflow-x: auto; /* 重要：手機端可左右滑動看完整樂句 */
+            -webkit-overflow-scrolling: touch;
         }
-        .editor-row { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        
+        .editor-row { 
+            display: flex; align-items: center; gap: 10px; margin-bottom: 20px; 
+            min-width: max-content; /* 確保內容不會被擠壓縮 */
+        }
         .editor-row.playing-row .row-label { color: var(--primary); transform: scale(1.1); }
         
-        .row-label { width: 40px; font-weight: bold; color: #94a3b8; font-size: 0.9rem; transition: all 0.2s; }
+        .row-label { width: 35px; font-weight: bold; color: #94a3b8; font-size: 0.85rem; text-align: center; }
+        
         .editor-strip {
-            display: flex; gap: 0; background: #fff; padding: 15px;
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; gap: 0; background: #fff; padding: 10px;
+            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             position: relative;
         }
 
         #countInOverlay {
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%;
-            background: rgba(15, 23, 42, 0.7); 
-            border-radius: 8px;
-            display: none; 
-            align-items: center; 
-            justify-content: center;
-            z-index: 50; 
-            color: #fff; 
-            font-size: 3rem; 
-            font-weight: 900;
-            pointer-events: none;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.7); border-radius: 8px;
+            display: none; align-items: center; justify-content: center;
+            z-index: 50; color: #fff; font-size: 2.5rem; font-weight: 900;
+            pointer-events: none; text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
 
         .measure {
             display: flex; flex-direction: column; gap: 5px; 
-            border-right: 4px solid var(--measure-border); 
-            padding: 0 15px; position: relative;
+            border-right: 2px solid var(--measure-border); 
+            padding: 0 10px; position: relative;
         }
         .measure:first-child { padding-left: 0; }
         .measure:last-child { border-right: none; padding-right: 0; }
-        .measure-beats { display: flex; gap: 10px; }
-        .beat-info { font-size: 11px; color: #94a3b8; text-align: left; margin-bottom: 6px; font-weight: 800; text-transform: uppercase; }
+        .measure-beats { display: flex; gap: 8px; }
+        .beat-info { font-size: 10px; color: #94a3b8; text-align: left; margin-bottom: 4px; font-weight: 800; }
+
         .beat-box {
             width: var(--box-size); height: var(--box-size); background: #f8fafc;
-            border: 2px solid #e2e8f0; border-radius: 10px;
+            border: 2px solid #e2e8f0; border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
-            overflow: hidden;
+            cursor: pointer; transition: all 0.1s; position: relative;
+            touch-action: manipulation; /* 優化觸控 */
         }
-        .beat-box.active { border-color: var(--focus); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25); background: #f0f7ff; }
-        .beat-box.playing-now { background: rgba(16, 185, 129, 0.25) !important; border-color: var(--primary) !important; transform: scale(1.05); z-index: 10; }
+        .beat-box.active { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        .beat-box.playing-now { background: rgba(16, 185, 129, 0.2) !important; border-color: var(--primary) !important; }
         
-        .row-actions { display: flex; gap: 8px; align-items: center; width: 32px; }
+        canvas { max-width: 100%; max-height: 100%; }
+
+        .row-actions { display: flex; gap: 5px; align-items: center; width: 30px; }
         .btn-remove {
-            width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent-ui);
-            background: transparent; color: var(--accent-ui); font-size: 1.2rem; cursor: pointer;
+            width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent-ui);
+            background: transparent; color: var(--accent-ui); font-size: 1rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            transition: 0.2s;
         }
-        .btn-remove:hover { background: var(--accent-ui); color: white; }
 
         .btn-add {
-            width: 50px; height: 50px; border-radius: 50%; border: 2px dashed #475569;
-            background: transparent; color: #475569; font-size: 2rem; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; margin-top: 10px;
+            width: 45px; height: 45px; border-radius: 50%; border: 2px dashed #475569;
+            background: transparent; color: #475569; font-size: 1.5rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; margin: 10px 0 30px 0;
         }
 
+        /* 腳註響應式 */
         .instruction-footer {
             background: var(--panel); border-top: 1px solid #475569; padding: 20px;
-            margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px; width: 100%; box-sizing: border-box;
         }
-        .instruction-item { font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
-        .instruction-item h4 { margin: 0 0 8px 0; color: var(--primary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
-        kbd { background: #0f172a; border: 1px solid #475569; border-radius: 4px; padding: 2px 6px; font-family: monospace; color: #fff; margin: 0 2px; }
+        .instruction-item { font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; }
+        .instruction-item h4 { margin: 0 0 8px 0; color: var(--primary); font-size: 0.85rem; }
+        kbd { background: #0f172a; border: 1px solid #475569; border-radius: 4px; padding: 1px 5px; font-family: monospace; color: #fff; }
+
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: 1px;">DRUM BEAT <span style="color:var(--primary)">SEQ</span></div>
+        <div style="font-size: 1rem; font-weight: 800; letter-spacing: 1px;">DRUM BEAT <span style="color:var(--primary)">SEQ</span></div>
         <div class="actions">
             <div class="control-group">
-                <span style="font-size: 0.8rem; color: #94a3b8;">音色:</span>
                 <select id="soundSelect">
                     <option value="snap" selected>Snap</option>
                     <option value="noise">Noise</option>
                 </select>
-            </div>
-            <div class="control-group">
-                <span style="font-size: 0.8rem; color: #94a3b8;">重音:</span>
                 <select id="accentSoundSelect">
                     <option value="snap">Snap</option>
                     <option value="noise" selected>Noise</option>
                 </select>
             </div>
             <div class="control-group">
-                <span style="font-size: 0.8rem; color: #94a3b8;">隨機範圍:</span>
                 <div class="random-options" id="randomOptionsContainer">
                     <div class="random-chip selected" data-value="1">1</div>
                     <div class="random-chip" data-value="2">2</div>
@@ -169,11 +173,11 @@
                     <div class="random-chip" data-value="7">7</div>
                     <div class="random-chip" data-value="8">8</div>
                 </div>
-                <button id="randomFillBtn" class="btn-random">隨機填入</button>
+                <button id="randomFillBtn" class="btn-random">隨機</button>
             </div>
             <div class="control-group">
-                <span style="font-size: 0.8rem; color: #94a3b8;">BPM: <strong id="bpmValue" style="color:var(--text)">120</strong></span>
-                <input type="range" id="bpmSlider" min="40" max="220" step="5" value="120" style="width: 80px; accent-color: var(--primary);">
+                <span style="font-size: 0.8rem; white-space: nowrap;">BPM: <strong id="bpmValue">120</strong></span>
+                <input type="range" id="bpmSlider" min="40" max="220" step="5" value="120" style="width: 60px; accent-color: var(--primary);">
             </div>
             <button id="playBtn" class="btn-play">播放</button>
         </div>
@@ -181,7 +185,7 @@
 
     <div class="main-content">
         <div id="rowsContainer">
-            <!-- 編輯器內容 -->
+            <!-- 動態生成行 -->
         </div>
         <button class="btn-add" id="addRowBtn">+</button>
     </div>
@@ -189,29 +193,12 @@
     <div class="instruction-footer">
         <div class="instruction-item">
             <h4>基礎操作</h4>
-            <div><kbd>Space</kbd> 播放 / 停止</div>
-            <div><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> 移動焦點</div>
-            <div><kbd>BackSpace</kbd> <kbd>Esc</kbd> 清除格點</div>
+            <div>空白鍵：播放/停止。上下左右切換格點。</div>
+            <div>數字鍵 1-8：切換不同節奏類型。</div>
         </div>
         <div class="instruction-item">
-            <h4>節奏類型 (1-4)</h4>
-            <div><kbd>1</kbd> 四分音符 / 休止符</div>
-            <div><kbd>2</kbd> 八分音符切換 (前/後/雙)</div>
-            <div><kbd>3</kbd> 十六分音符 (單點位置)</div>
-            <div><kbd>4</kbd> 十六分音符 (雙點組合)</div>
-        </div>
-        <div class="instruction-item">
-            <h4>進階節奏 (5-8)</h4>
-            <div><kbd>5</kbd> 十六分音符 (三點與全滿)</div>
-            <div><kbd>6</kbd> 16分音符全滿 + 單點重音</div>
-            <div><kbd>7</kbd> 16分音符全滿 + 雙點重音</div>
-            <div><kbd>8</kbd> 16分音符全滿 + 三/四點重音</div>
-        </div>
-        <div class="instruction-item">
-            <h4>系統限制</h4>
-            <div>最大行數：16 行</div>
-            <div>自動倒數：播放前有 4 拍預備 (顯示於 L1 第一格)</div>
-            <div>隨機填入：僅填入勾選的系列類型</div>
+            <h4>行動裝置</h4>
+            <div>本編輯器支援水平捲動，您可以左右滑動以編輯後面的小節。</div>
         </div>
     </div>
 
@@ -278,7 +265,7 @@
             if (!isPlaying) {
                 isPlaying = true;
                 isCountingIn = true;
-                countInStep = 0; // 從 0 開始，對應顯示 4
+                countInStep = 0; 
                 currentGlobalStep = 0; 
                 nextNoteTime = audioCtx.currentTime + 0.1;
                 const overlay = document.getElementById('countInOverlay');
@@ -316,12 +303,10 @@
                 const bpm = parseInt(bpmSlider.value), beatDur = 60.0 / bpm;
                 while (nextNoteTime < audioCtx.currentTime + 0.1) {
                     if (isCountingIn) {
-                        // 當 countInStep 為 0, 1, 2, 3 時，分別對應顯示 4, 3, 2, 1 並播放聲音
                         if (countInStep < 4) {
                             scheduleCountIn(countInStep, nextNoteTime);
                             countInStep++;
                         } else {
-                            // 第 5 拍（countInStep = 4）那一瞬間關閉遮罩並進入正式播放
                             isCountingIn = false;
                             updateCountInUI(null);
                             processSequenceStep(beatDur);
@@ -493,7 +478,7 @@
                 for (let m = 0; m < 4; m++) {
                     const measureDiv = document.createElement('div'); measureDiv.className = 'measure';
                     const info = document.createElement('div'); info.className = 'beat-info';
-                    info.textContent = `Bar ${m+1}`; measureDiv.appendChild(info);
+                    info.textContent = `B${m+1}`; measureDiv.appendChild(info);
                     const beatsRow = document.createElement('div'); beatsRow.className = 'measure-beats';
                     for (let b = 0; b < 4; b++) {
                         const beatIdx = m * 4 + b;
