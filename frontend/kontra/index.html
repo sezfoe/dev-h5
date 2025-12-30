@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixiJS 基本範例</title>
+    <title>Kontra.js 基本範例</title>
     <style>
         body {
             margin: 0;
@@ -15,8 +15,13 @@
             min-height: 100vh;
             background-color: #222;
         }
-        #pixi-container {
+        #kontra-container {
             margin-bottom: 20px;
+        }
+        canvas {
+            display: block;
+            background-color: #000;
+            border: 2px solid #fff;
         }
         button {
             padding: 10px 20px;
@@ -26,10 +31,12 @@
     </style>
 </head>
 <body>
-    <div id="pixi-container"></div>
+    <div id="kontra-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
     <button id="btnBackHome">返回主頁</button>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
-    <script src="pixi.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/kontra@8.1.1/kontra.min.js"></script>
+    <script src="index.js"></script>
 </body>
 </html>
 
