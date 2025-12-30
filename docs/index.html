@@ -106,6 +106,7 @@
             flex-grow: 1; display: flex; flex-direction: column;
             align-items: center; padding: 20px 10px;
             overflow-y: auto;
+            justify-content: space-between;
         }
         
         .editor-row { 
@@ -258,8 +259,18 @@
     </div>
 
     <div class="main-content">
-        <div id="rowsContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
-        <button class="btn-add" id="addRowBtn">+</button>
+        <div style="flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <div id="rowsContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
+            <button class="btn-add" id="addRowBtn">+</button>
+        </div>
+        
+        <!-- 底部控制列：JSON 顯示區域 -->
+        <div class="controls" style="width: 100%; max-width: 1200px; margin-top: auto;">
+            <div style="width: 100%;">
+                <label style="display: block; font-size: 12px; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">鼓譜音符ID (JSON格式):</label>
+                <textarea id="scoreJsonDisplay" readonly style="width: 100%; min-height: 80px; padding: 8px; background: #1e293b; color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; resize: vertical; box-sizing: border-box;"></textarea>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -278,6 +289,7 @@
         const soundSelect = document.getElementById('soundSelect'), accentSoundSelect = document.getElementById('accentSoundSelect');
         const randomOptionsContainer = document.getElementById('randomOptionsContainer'), randomFillBtn = document.getElementById('randomFillBtn');
         const metronomeCheckbox = document.getElementById('metronomeCheckbox');
+        const scoreJsonDisplay = document.getElementById('scoreJsonDisplay');
         const beatsPerMeasure = 4; // 每個小節 4 拍
         const maxRows = 16; // 最大句段數
         const maxMeasures = 16; // 每個句段最大小節數 
@@ -306,6 +318,7 @@
             renderRows();
             initRandomToggles();
             initNoteSelector();
+            updateScoreJson(); // 初始化時顯示JSON
             bpmSlider.oninput = (e) => { bpmValue.textContent = e.target.value; };
             addRowBtn.onclick = () => { if (scoreData.length < maxRows) { scoreData.push(new Array(beatsPerMeasure).fill(0)); renderRows(); } };
             playBtn.onclick = () => { 
@@ -622,6 +635,13 @@
             }
         }
 
+        function updateScoreJson() {
+            // 將scoreData轉換為JSON格式並顯示
+            if (scoreJsonDisplay) {
+                scoreJsonDisplay.value = JSON.stringify(scoreData, null, 2);
+            }
+        }
+
         function renderRows() {
             rowsContainer.innerHTML = '';
             scoreData.forEach((rowData, rI) => {
@@ -713,6 +733,7 @@
                 
                 row.appendChild(strip); rowsContainer.appendChild(row);
             });
+            updateScoreJson(); // 更新JSON顯示
         }
 
         function setFocus(r, b) { 
