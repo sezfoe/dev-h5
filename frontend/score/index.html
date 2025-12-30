@@ -469,12 +469,12 @@
                 noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
                 noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
                 gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
-                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.08); gainNode.connect(audioCtx.destination); return;
+                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.079); gainNode.connect(audioCtx.destination); return;
             }
             const osc = audioCtx.createOscillator(), gainNode = audioCtx.createGain();
             osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, scheduleTime);
             gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.08);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.079);
         }
 
         function playMetronomeTick(time) {
