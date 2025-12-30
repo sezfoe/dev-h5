@@ -233,7 +233,7 @@
     </div>
 
     <script>
-        const workerCode = `let t=null;self.onmessage=(e)=>{if(e.data==="start")t=setInterval(()=>postMessage("tick"),25);else if(e.data==="stop")clearInterval(t);};`;
+        const workerCode = `let t=null;self.onmessage=(e)=>{if(e.data==="start")t=setInterval(()=>postMessage("tick"),10);else if(e.data==="stop")clearInterval(t);};`;
         const blob = new Blob([workerCode], { type: 'application/javascript' });
         const timerWorker = new Worker(URL.createObjectURL(blob));
 
@@ -307,7 +307,8 @@
             if (audioCtx.state === 'suspended') await audioCtx.resume();
             if (!isPlaying) {
                 isPlaying = true; isCountingIn = true; countInStep = 0; currentGlobalStep = 0; 
-                nextNoteTime = audioCtx.currentTime + 0.1;
+                // 減少初始延遲，使用更小的值以減少首次播放延遲
+                nextNoteTime = audioCtx.currentTime + 0.05;
                 const overlay = document.getElementById('countInOverlay');
                 if (overlay) overlay.style.display = 'flex';
                 timerWorker.postMessage("start");
@@ -331,7 +332,9 @@
             if (e.data === "tick") {
                 if (!isPlaying) return;
                 const bpm = parseInt(bpmSlider.value), beatDur = 60.0 / bpm;
-                while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                // 增加調度提前時間到 0.2 秒，確保高 BPM 時也能及時調度
+                const scheduleAheadTime = 0.2;
+                while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
                     if (isCountingIn) {
                         if (countInStep < 4) { scheduleCountIn(countInStep, nextNoteTime); countInStep++; }
                         else { isCountingIn = false; updateCountInUI(null); processSequenceStep(beatDur); }
@@ -365,6 +368,8 @@
         }
 
         function playSound(time, freq, volume = 0.3, soundType = 'snap', isAccent = false) {
+            // 確保時間不會是過去時間，避免延遲
+            const scheduleTime = Math.max(time, audioCtx.currentTime);
             const finalVol = isAccent ? volume * 1.6 : volume, finalFreq = isAccent ? freq * 1.2 : freq;
             if (soundType === 'noise') {
                 const bufferSize = audioCtx.sampleRate * 0.1, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
@@ -373,13 +378,13 @@
                 const gainNode = audioCtx.createGain(), noiseFilter = audioCtx.createBiquadFilter();
                 noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
                 noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
-                gainNode.gain.setValueAtTime(finalVol * 0.4, time); gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-                noiseSource.start(time); noiseSource.stop(time + 0.1); gainNode.connect(audioCtx.destination); return;
+                gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.08);
+                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.1); gainNode.connect(audioCtx.destination); return;
             }
             const osc = audioCtx.createOscillator(), gainNode = audioCtx.createGain();
-            osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, time);
-            gainNode.gain.setValueAtTime(finalVol * 0.5, time); gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(time); osc.stop(time + 0.1);
+            osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, scheduleTime);
+            gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.1);
         }
 
         function scheduleStep(r, b, time, dur) {
