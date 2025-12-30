@@ -462,19 +462,19 @@
             const scheduleTime = Math.max(time, audioCtx.currentTime);
             const finalVol = isAccent ? volume * 1.6 : volume, finalFreq = isAccent ? freq * 1.2 : freq;
             if (soundType === 'noise') {
-                const bufferSize = audioCtx.sampleRate * 0.1, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
+                const bufferSize = audioCtx.sampleRate * 0.05, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
                 const noiseSource = audioCtx.createBufferSource(); noiseSource.buffer = buffer;
                 const gainNode = audioCtx.createGain(), noiseFilter = audioCtx.createBiquadFilter();
                 noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
                 noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
-                gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.08);
-                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.1); gainNode.connect(audioCtx.destination); return;
+                gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.03);
+                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.05); gainNode.connect(audioCtx.destination); return;
             }
             const osc = audioCtx.createOscillator(), gainNode = audioCtx.createGain();
             osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, scheduleTime);
-            gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.1);
+            gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.02);
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.04);
         }
 
         function playMetronomeTick(time) {
