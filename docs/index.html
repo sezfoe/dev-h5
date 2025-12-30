@@ -235,6 +235,10 @@
             </div>
             <button id="playBtn" class="btn-play">播放</button>
             <button id="loopBtn" class="btn-play btn-loop">循環</button>
+            <label style="display: flex; align-items: center; gap: 5px; margin-left: 10px; cursor: pointer;">
+                <input type="checkbox" id="metronomeCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-size: 14px; color: #475569; font-weight: 500;">拍子提示</span>
+            </label>
         </div>
         
         <!-- 第三排：音符選擇器 -->
@@ -266,12 +270,14 @@
         let audioCtx = null, isPlaying = false, nextNoteTime = 0.0, currentGlobalStep = 0;
         let isCountingIn = false, countInStep = 0;
         let isLoopMode = false; // 循環播放模式
+        let isMetronomeEnabled = false; // 拍子提示開關
 
         const rowsContainer = document.getElementById('rowsContainer'), addRowBtn = document.getElementById('addRowBtn');
         const playBtn = document.getElementById('playBtn'), loopBtn = document.getElementById('loopBtn');
         const bpmSlider = document.getElementById('bpmSlider'), bpmValue = document.getElementById('bpmValue');
         const soundSelect = document.getElementById('soundSelect'), accentSoundSelect = document.getElementById('accentSoundSelect');
         const randomOptionsContainer = document.getElementById('randomOptionsContainer'), randomFillBtn = document.getElementById('randomFillBtn');
+        const metronomeCheckbox = document.getElementById('metronomeCheckbox');
         const beatsPerMeasure = 4; // 每個小節 4 拍
         const maxRows = 16; // 最大句段數
         const maxMeasures = 16; // 每個句段最大小節數 
@@ -311,6 +317,7 @@
                 togglePlayback(); 
             };
             randomFillBtn.onclick = handleRandomFill;
+            metronomeCheckbox.onchange = (e) => { isMetronomeEnabled = e.target.checked; };
         }
 
         function updateButtonStates() {
@@ -470,8 +477,24 @@
             osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.1);
         }
 
+        function playMetronomeTick(time) {
+            // 播放叮聲作為拍子提示（類似倒數的聲音）
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
+            gain.gain.setValueAtTime(0.3, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(time); osc.stop(time + 0.08);
+        }
+
         function scheduleStep(r, b, time, dur) {
             const type = scoreData[r][b]; updateUI(r, b, time);
+            
+            // 如果啟用了拍子提示，且是每一拍的第一個點（16分音符的第一個位置），播放叮聲並返回
+            if (isMetronomeEnabled && (b % beatsPerMeasure === 0)) {
+                playMetronomeTick(time);
+                return; // 不播放原來的音符
+            }
+            
             if (type === 0 || type === 12) return;
             const baseFreq = 220, p16 = [0, 0.25, 0.5, 0.75], cS = soundSelect.value, cAS = accentSoundSelect.value;
             const play = (t, isAcc = false) => { playSound(t, baseFreq, 0.3, isAcc ? cAS : cS, isAcc); };
