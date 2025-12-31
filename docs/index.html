@@ -137,7 +137,7 @@
             box-sizing: border-box;
         }
         
-        .measure:nth-child(4n), .measure:last-child { border-right: none; }
+        .measure.measure-last-in-row { border-right: none; }
 
         .measure-beats { display: flex; gap: var(--gap); justify-content: center; }
         .beat-info { font-size: 10px; color: #94a3b8; text-align: left; margin-bottom: 4px; font-weight: 800; padding-left: 5px; }
@@ -331,6 +331,15 @@
             };
             randomFillBtn.onclick = handleRandomFill;
             metronomeCheckbox.onchange = (e) => { isMetronomeEnabled = e.target.checked; };
+            
+            // 监听窗口大小改变，重新计算小节线
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    updateMeasureBorders();
+                }, 100);
+            });
         }
 
         function updateButtonStates() {
@@ -734,6 +743,37 @@
                 row.appendChild(strip); rowsContainer.appendChild(row);
             });
             updateScoreJson(); // 更新JSON顯示
+            
+            // 在所有DOM渲染完成后，标记每行最后一个小节
+            requestAnimationFrame(() => {
+                updateMeasureBorders();
+            });
+        }
+        
+        function updateMeasureBorders() {
+            // 遍历所有句段
+            document.querySelectorAll('.editor-strip').forEach(strip => {
+                const measures = Array.from(strip.querySelectorAll('.measure'));
+                if (measures.length === 0) return;
+                
+                // 移除所有现有的标记
+                measures.forEach(m => m.classList.remove('measure-last-in-row'));
+                
+                // 计算每行最后一个小节
+                for (let i = 0; i < measures.length; i++) {
+                    const currentMeasure = measures[i];
+                    const nextMeasure = measures[i + 1];
+                    
+                    // 获取当前小节和下一个小节的顶部位置
+                    const currentTop = currentMeasure.offsetTop;
+                    const nextTop = nextMeasure ? nextMeasure.offsetTop : null;
+                    
+                    // 如果没有下一个小节，或者下一个小节在不同的行（顶部位置不同），则当前小节是行尾
+                    if (!nextMeasure || nextTop !== currentTop) {
+                        currentMeasure.classList.add('measure-last-in-row');
+                    }
+                }
+            });
         }
 
         function setFocus(r, b) { 
