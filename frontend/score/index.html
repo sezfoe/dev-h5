@@ -455,13 +455,15 @@
                             countInStep++; 
                             nextNoteTime += beatDur;
                         } else { 
+                            // 倒數結束：countInStep === 4 時，nextNoteTime 已經是倒數"1"之後的一拍時間
+                            // 第一拍音符應該在這個時間播放
                             isCountingIn = false; 
                             updateCountInUI(null); 
                             // 倒數結束後，初始化誤差校正的基準點
-                            playbackStartTime = audioCtx.currentTime;
+                            // 第一拍音符的時間就是當前的 nextNoteTime
+                            playbackStartTime = nextNoteTime;
                             playbackStartStep = currentGlobalStep;
-                            // 重新計算 nextNoteTime，確保從正確的時間開始
-                            nextNoteTime = playbackStartTime;
+                            // 直接使用當前的 nextNoteTime 播放第一拍音符
                             processSequenceStep(beatDur); 
                             nextNoteTime += beatDur;
                         }
