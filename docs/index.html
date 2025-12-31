@@ -282,6 +282,8 @@
         let isCountingIn = false, countInStep = 0;
         let isLoopMode = false; // 循環播放模式
         let isMetronomeEnabled = false; // 拍子提示開關
+        let playbackStartTime = 0.0; // 播放開始的絕對時間
+        let playbackStartStep = 0; // 播放開始時的步數
 
         const rowsContainer = document.getElementById('rowsContainer'), addRowBtn = document.getElementById('addRowBtn');
         const playBtn = document.getElementById('playBtn'), loopBtn = document.getElementById('loopBtn');
@@ -390,8 +392,11 @@
             if (audioCtx.state === 'suspended') await audioCtx.resume();
             if (!isPlaying) {
                 isPlaying = true; isCountingIn = true; countInStep = 0; currentGlobalStep = 0; 
+                // 記錄播放開始的絕對時間和步數，用於避免累積誤差
+                playbackStartTime = audioCtx.currentTime + 0.05;
+                playbackStartStep = 0;
                 // 減少初始延遲，使用更小的值以減少首次播放延遲
-                nextNoteTime = audioCtx.currentTime + 0.05;
+                nextNoteTime = playbackStartTime;
                 const overlay = document.getElementById('countInOverlay');
                 if (overlay) overlay.style.display = 'flex';
                 timerWorker.postMessage("start");
@@ -424,12 +429,47 @@
                 const bpm = parseInt(bpmSlider.value), beatDur = 60.0 / bpm;
                 // 增加調度提前時間到 0.2 秒，確保高 BPM 時也能及時調度
                 const scheduleAheadTime = 0.2;
+                
+                // 定期重新同步時間，避免累積誤差
+                // 每100步重新計算一次，基於初始時間和步數
+                if (!isCountingIn && currentGlobalStep % 100 === 0 && currentGlobalStep > 0) {
+                    const expectedTime = playbackStartTime + (currentGlobalStep - playbackStartStep) * beatDur;
+                    const actualTime = audioCtx.currentTime;
+                    // 如果誤差超過10ms，重新同步
+                    if (Math.abs(expectedTime - actualTime) > 0.01) {
+                        playbackStartTime = actualTime;
+                        playbackStartStep = currentGlobalStep;
+                    }
+                }
+                
                 while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
                     if (isCountingIn) {
-                        if (countInStep < 4) { scheduleCountIn(countInStep, nextNoteTime); countInStep++; }
-                        else { isCountingIn = false; updateCountInUI(null); processSequenceStep(beatDur); }
-                    } else { processSequenceStep(beatDur); }
-                    nextNoteTime += beatDur; 
+                        if (countInStep < 4) { 
+                            scheduleCountIn(countInStep, nextNoteTime); 
+                            countInStep++; 
+                            // 倒數時使用累加，因為只有4步，誤差可忽略
+                            nextNoteTime += beatDur;
+                        } else { 
+                            isCountingIn = false; 
+                            updateCountInUI(null); 
+                            // 倒數結束後，重新同步到當前時間，開始正常播放
+                            playbackStartTime = audioCtx.currentTime;
+                            playbackStartStep = currentGlobalStep;
+                            // 處理第一步，然後計算下一步的時間
+                            processSequenceStep(beatDur); 
+                            // 計算下一步的時間，基於初始時間和步數，避免累積誤差
+                            // currentGlobalStep 在 processSequenceStep 中已經遞增，所以這裡是下一步的步數
+                            const nextStep = currentGlobalStep - playbackStartStep;
+                            nextNoteTime = playbackStartTime + nextStep * beatDur;
+                        }
+                    } else { 
+                        // 處理當前步，然後計算下一步的時間
+                        processSequenceStep(beatDur); 
+                        // 計算下一步的時間，基於初始時間和步數，避免累積誤差
+                        // currentGlobalStep 在 processSequenceStep 中已經遞增，所以這裡是下一步的步數
+                        const nextStep = currentGlobalStep - playbackStartStep;
+                        nextNoteTime = playbackStartTime + nextStep * beatDur;
+                    }
                 }
             }
         };
