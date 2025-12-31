@@ -1,0 +1,99 @@
+services:                           # 定義多個服務
+  jamkao-nginx:                     # Nginx 服務
+    image: nginx                    # 使用官方映像
+    ports:
+      - "8080:80"                   # 主機 8080 到容器 80
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro # 將本地 nginx.conf 掛載到容器中
+
+  jamkao-app:                       # Go應用服務
+    image: jamkao-app:latest        # 建立後的映像名稱與標籤
+    build:                          # 建立映像的相關設定
+      context: .                    # Docker build 的上下文目錄（此目錄為專案根目錄）
+      dockerfile: dockerfile        # 指定 Dockerfile 檔名
+    # ports:
+    #   - "8080:8080"                 # 主機 8080 到容器 8080
+    environment:
+      - APP_ENV=dev                 # 設定環境變數 APP_ENV=dev
+    restart: always                 # 容器異常時自動重啟
+
+  jamkao-python:                    # 應用服務
+    image: python:3.12              # 建立後的映像名稱與標籤
+    volumes:
+      - ./py:/pyapp                 # 掛載本地目錄
+    environment:
+      - PYTHONUNBUFFERED=1
+    # command: tail -f /dev/null      # 保持容器運行
+    command: python3 /pyapp/main.py # 執行main.py
+
+  jamkao-c:                         # C/C++ 開發與執行環境
+    image: gcc:13                   # 官方 GCC (支援 C/C++)
+    # container_name: jamkao-c      # 可選，指定容器名稱
+    volumes:
+      - ./c:/capp                   # 掛載本地 C/C++ 專案目錄
+    working_dir: /capp              # 預設工作目錄
+    command: tail -f /dev/null      # 保持容器運行，可進入 bash 手動 build/run
+    tty: true                       # 支援互動式終端    
+
+  jamkao-mongo:                     # MongoDB 服務
+    image: mongo:7                  # 使用官方映像
+    ports:
+      - "27017:27017"               # 主機 27017 到容器 27017
+    volumes:
+      - mongo_data:/data/db         # 資料持久化
+      - mongo_config:/data/configdb # Sharding/ReplicaSet資料持久化
+
+  jamkao-redis:                     # Redis 服務
+    image: redis:8.0.3              # 使用官方映像
+    ports:
+      - "6379:6379"                 # 主機 6379 到容器 6379
+    volumes:
+      - redis_data:/data            # 資料持久化
+
+  jamkao-svn:                       # SVN 服務
+    image: garethflowers/svn-server # 使用官方映像
+    ports:
+      - "3690:3690"                 # 主機 3690 到容器 3690
+    volumes:
+      - svn_data:/var/opt/svn       # 資料持久化
+
+  jamkao-jenkins:                   # Jenkins 服務
+    image: jenkins/jenkins:lts      # 使用官方映像
+    ports:
+      - "8082:8080"                 # 主機 8082 到容器 8080 (Web UI)
+      - "50000:50000"               # 主機 50000 到容器 50000 (agent 通訊)
+    volumes:
+      - jenkins_home:/var/jenkins_home # 資料持久化
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  jamkao-kafka:                     # Kafka 服務
+    image: bitnami/kafka:3.9        # 官方 Bitnami Kafka 映像
+    ports:
+      - "9092:9092"                 # 主機 9092 到容器 9092
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=jamkao-zookeeper:2181
+    volumes:
+      - kafka_data:/bitnami/kafka   # Kafka 資料持久化
+    depends_on:
+      - jamkao-zookeeper
+
+  jamkao-zookeeper:                 # Zookeeper 服務（Kafka 依賴）
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
+
+volumes:
+  mongo_data:                       # MongoDB 資料卷
+  mongo_config:                     # MongoDB 配置卷
+  redis_data:                       # Redis 資料卷
+  svn_data:                         # SVN 資料卷
+  jenkins_home:                     # Jenkins 資料卷
+  kafka_data:                       # Kafka 資料卷
+  zookeeper_data:                   # Zookeeper 資料卷

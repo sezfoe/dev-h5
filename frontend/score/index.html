@@ -442,7 +442,8 @@
                     if (Math.abs(error) > 0.01) {
                         playbackStartTime = actualTime;
                         playbackStartStep = currentGlobalStep;
-                        // 重新計算 nextNoteTime，校正誤差
+                        // 重新計算 nextNoteTime，校正誤差（基於新的基準點和下一步的步數）
+                        // 注意：currentGlobalStep 是下一步要處理的步數，所以不需要加1
                         nextNoteTime = playbackStartTime;
                     }
                 }
@@ -459,6 +460,8 @@
                             // 倒數結束後，初始化誤差校正的基準點
                             playbackStartTime = audioCtx.currentTime;
                             playbackStartStep = currentGlobalStep;
+                            // 重新計算 nextNoteTime，確保從正確的時間開始
+                            nextNoteTime = playbackStartTime;
                             processSequenceStep(beatDur); 
                             nextNoteTime += beatDur;
                         }
@@ -478,6 +481,9 @@
             // 如果是循環模式且到達末尾，重置到開始
             if (currentGlobalStep >= totalStepsInSequence) {
                 if (isLoopMode) {
+                    // 循環模式下重置步數時，同時更新誤差校正的基準點
+                    playbackStartTime = audioCtx.currentTime;
+                    playbackStartStep = 0;
                     currentGlobalStep = 0;
                 } else {
                     stopPlayback(); 

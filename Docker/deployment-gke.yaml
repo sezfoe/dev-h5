@@ -1,0 +1,40 @@
+apiVersion: apps/v1                # Deployment 使用的 API 版本
+kind: Deployment                   # 資源類型為 Deployment
+metadata:
+  name: jamkao-app                 # Deployment 名稱
+spec:
+  replicas: 1                      # 副本數量為 1
+  selector:
+    matchLabels:
+      app: jamkao-app              # 用於選擇 Pod 的標籤
+  template:
+    metadata:
+      labels:
+        app: jamkao-app            # Pod 的標籤，需與 selector 相符
+    spec:
+      containers:
+        - name: jamkao-app         # 容器名稱
+          image: us-central1-docker.pkg.dev/sssapi-stg/sssapi-platform/jamkao-app:latest # 使用的映像檔名稱
+          imagePullPolicy: Always  # 總是從 registry 拉取最新映像
+          ports:
+            - containerPort: 8080  # 容器內部開放的 port          
+          resources:               # 資源限制
+            limits:
+              memory: "512Mi"      # 最大記憶體使用量
+              cpu: "500m"          # 最大 CPU 使用量
+            requests:
+              memory: "256Mi"      # 最小記憶體需求
+              cpu: "250m"          # 最小 CPU 需求
+
+--- 
+# apiVersion: v1                     # Service 使用的 API 版本
+# kind: Service                      # 資源類型為 Service
+# metadata:
+#   name: jamkao-app-service         # Service 名稱
+# spec:
+#   type: LoadBalancer               # Service 類型為 LoadBalancer（雲端自動分配外部 IP）
+#   selector:
+#     app: jamkao-app                # 連接到具有此標籤的 Pod
+#   ports:
+#     - port: 8080                   # Service 對外提供的 port
+#       targetPort: 8080             # Pod 內部實際接收流量的 port

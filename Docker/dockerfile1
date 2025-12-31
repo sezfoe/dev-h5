@@ -1,0 +1,5 @@
+# 運行用
+FROM alpine:3.22
+#FROM ubuntu:22.04
+#FROM golang:1.22
+EXPOSE 8080

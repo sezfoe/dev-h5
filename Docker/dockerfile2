@@ -1,0 +1,18 @@
+# 階段映像-建構用
+FROM golang:1.22 AS builder
+WORKDIR /goapp
+COPY go.mod .
+COPY main.go .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app
+
+# 最終映像-運行用
+# FROM scratch
+# COPY --from=builder /goapp/app /app
+# EXPOSE 8080
+# ENTRYPOINT ["/app"]
+
+# 最終映像-運行用
+FROM alpine:3.22
+COPY --from=builder /goapp/app /app
+EXPOSE 8080
+ENTRYPOINT ["/app"]
