@@ -1,0 +1,54 @@
+tags
+.svn
+.vscode
+.idea
+
+# Binaries for programs and plugins
+/go.sum
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output of go build
+/build/
+/bin/
+/dist/
+
+# Vendor directory (if you use vendoring)
+/vendor/
+/vendor
+# Go workspace file (Go 1.18+)
+/go.work
+/go.work.sum
+
+# Dependency directories (older tools)
+/Godeps/
+
+# Editor and IDE configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Test coverage output
+coverage.out
+
+# Go modules cache (not necessary to track)
+pkg/
+
+# Git hooks and configuration (if not tracked intentionally)
+.hooks/
+# Ignore Marduk folder
+#Marduk/**/*
+Marduk/
+!static/
