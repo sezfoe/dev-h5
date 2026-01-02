@@ -17,6 +17,10 @@
 │   ├── lesson1_basics/           # 基礎語法
 │   ├── lesson2_structs_methods/  # 結構體與方法
 │   └── lesson3_concurrency/      # 並發編程
+├── server/          # HTTP 服務器專案
+│   ├── main.go      # HTTP 服務器主程式
+│   ├── go.mod
+│   └── go.sum
 └── vendor/          # 依賴套件快取
 ```
 
@@ -26,6 +30,21 @@
 - **Channel 測試**: 示範 Goroutine 與 Channel 的基本使用
 - **Timer 測試**: 展示 Ticker 和 AfterFunc 的使用方式
 - **模組引用**: 使用本地模組 `a` 和 `b` 進行模組化開發
+
+### HTTP 服務器 (server/)
+完整的 HTTP 服務器實作，用於提供前端靜態文件和處理 API 請求：
+- 靜態文件服務：自動提供前端 HTML/JS 文件
+- API 請求處理：支援 GET 和 POST 請求
+- CORS 支援：已啟用跨域資源共享
+- 日誌記錄：使用 zerolog 進行結構化日誌
+
+**執行方式**：
+```bash
+cd server
+go run main.go
+```
+
+服務器將在 `http://localhost:8800` 啟動。
 
 ### 教學課程 (lesson/)
 包含三個循序漸進的 Go 語言學習範例：
@@ -61,6 +80,8 @@ go run main.go
 - **Channels**: Goroutine 間的通訊機制
 - **Timers**: 時間相關的並發控制
 - **WaitGroup**: 等待多個 Goroutine 完成
+- **HTTP 服務器**: net/http 標準庫的使用
+- **結構化日誌**: zerolog 日誌庫
 
 ## 📚 學習資源
 

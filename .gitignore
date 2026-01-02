@@ -19,6 +19,7 @@ tags
 # Vendor directory (if you use vendoring)
 /vendor/
 /vendor
+
 # Go workspace file (Go 1.18+)
 /go.work
 /go.work.sum
