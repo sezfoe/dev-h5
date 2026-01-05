@@ -268,7 +268,7 @@
         <div class="controls" style="width: 100%; max-width: 100%; margin-top: auto; box-sizing: border-box;">
             <div style="width: 100%; max-width: 100%; box-sizing: border-box;">
                 <label style="display: block; font-size: 12px; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">鼓譜音符ID (JSON格式):</label>
-                <textarea id="scoreJsonDisplay" readonly style="width: 100%; max-width: 100%; min-height: 80px; padding: 8px; background: #1e293b; color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; resize: vertical; box-sizing: border-box;"></textarea>
+                <textarea id="scoreJsonDisplay" readonly style="width: 100%; max-width: 100%; min-height: 80px; padding: 8px; background: #1e293b; color: #cbd5e1; border: 1px solid #475569; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; resize: vertical; box-sizing: border-box; white-space: pre-wrap; word-wrap: break-word;"></textarea>
             </div>
         </div>
     </div>
@@ -341,6 +341,13 @@
                 resizeTimer = setTimeout(() => {
                     updateMeasureBorders();
                 }, 100);
+            });
+            
+            // 监听页面可见性变化：切换到后台时停止播放
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && isPlaying) {
+                    stopPlayback();
+                }
             });
         }
 
@@ -690,9 +697,9 @@
         }
 
         function updateScoreJson() {
-            // 將scoreData轉換為JSON格式並顯示
+            // 將scoreData轉換為JSON格式並顯示（單行字符串，自動換行）
             if (scoreJsonDisplay) {
-                scoreJsonDisplay.value = JSON.stringify(scoreData, null, 2);
+                scoreJsonDisplay.value = JSON.stringify(scoreData);
             }
         }
 
