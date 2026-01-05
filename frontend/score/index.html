@@ -324,11 +324,15 @@
             bpmSlider.oninput = (e) => { bpmValue.textContent = e.target.value; };
             addRowBtn.onclick = () => { if (scoreData.length < maxRows) { scoreData.push(new Array(beatsPerMeasure).fill(0)); renderRows(); } };
             playBtn.onclick = () => { 
+                console.log('[DEBUG] 播放按鈕點擊');
                 isLoopMode = false; 
+                console.log('[DEBUG] 設置 isLoopMode = false');
                 togglePlayback(); 
             };
             loopBtn.onclick = () => { 
+                console.log('[DEBUG] 循環按鈕點擊');
                 isLoopMode = true; 
+                console.log('[DEBUG] 設置 isLoopMode = true');
                 togglePlayback(); 
             };
             randomFillBtn.onclick = handleRandomFill;
@@ -345,26 +349,40 @@
             
             // 监听页面可见性变化：切换到后台时停止播放
             document.addEventListener('visibilitychange', () => {
+                console.log('[DEBUG] 頁面可見性變化:', {
+                    hidden: document.hidden,
+                    isPlaying: isPlaying,
+                    audioCtxState: audioCtx ? audioCtx.state : 'null',
+                    isLoopMode: isLoopMode
+                });
                 if (document.hidden && isPlaying) {
+                    console.log('[DEBUG] 切換到背景，停止播放');
                     stopPlayback();
                 }
             });
         }
 
         function updateButtonStates() {
+            console.log('[DEBUG] updateButtonStates 調用:', {
+                isPlaying: isPlaying,
+                isLoopMode: isLoopMode
+            });
             // 只有在播放时才设置互斥状态
             if (isPlaying) {
                 if (isLoopMode) {
                     playBtn.classList.add('disabled');
                     loopBtn.classList.remove('disabled');
+                    console.log('[DEBUG] 播放中（循環模式），播放按鈕灰階，循環按鈕亮');
                 } else {
                     playBtn.classList.remove('disabled');
                     loopBtn.classList.add('disabled');
+                    console.log('[DEBUG] 播放中（普通模式），播放按鈕亮，循環按鈕灰階');
                 }
             } else {
                 // 停止时，两个按钮都亮
                 playBtn.classList.remove('disabled');
                 loopBtn.classList.remove('disabled');
+                console.log('[DEBUG] 停止狀態，兩個按鈕都亮');
             }
         }
 
@@ -395,18 +413,36 @@
         }
 
         async function togglePlayback() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('[DEBUG] togglePlayback 開始:', {
+                audioCtxExists: !!audioCtx,
+                audioCtxState: audioCtx ? audioCtx.state : 'null',
+                isPlaying: isPlaying,
+                isLoopMode: isLoopMode
+            });
+            
+            if (!audioCtx) {
+                console.log('[DEBUG] 創建新的 AudioContext');
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
             // 確保 AudioContext 處於運行狀態
+            console.log('[DEBUG] AudioContext 當前狀態:', audioCtx.state);
             if (audioCtx.state === 'suspended') {
+                console.log('[DEBUG] AudioContext 被暫停，嘗試恢復...');
                 await audioCtx.resume();
+                console.log('[DEBUG] resume() 調用後狀態:', audioCtx.state);
             }
             // 如果 AudioContext 狀態不是 'running'，等待它恢復
             if (audioCtx.state !== 'running') {
+                console.log('[DEBUG] AudioContext 狀態不是 running，等待狀態變化...');
                 await new Promise((resolve) => {
                     const checkState = () => {
+                        console.log('[DEBUG] 檢查 AudioContext 狀態:', audioCtx.state);
                         if (audioCtx.state === 'running') {
+                            console.log('[DEBUG] AudioContext 已恢復為 running');
                             resolve();
                         } else {
+                            console.log('[DEBUG] 等待 AudioContext 狀態變化...');
                             audioCtx.addEventListener('statechange', checkState, { once: true });
                         }
                     };
@@ -414,7 +450,11 @@
                 });
             }
             
+            console.log('[DEBUG] AudioContext 最終狀態:', audioCtx.state);
+            console.log('[DEBUG] 當前 isPlaying:', isPlaying);
+            
             if (!isPlaying) {
+                console.log('[DEBUG] 開始播放，設置狀態...');
                 isPlaying = true; 
                 isCountingIn = true; 
                 countInStep = 0; 
@@ -424,19 +464,39 @@
                 playbackStartStep = 0;
                 // 減少初始延遲，使用更小的值以減少首次播放延遲
                 nextNoteTime = playbackStartTime;
+                console.log('[DEBUG] 播放狀態設置完成:', {
+                    isPlaying: isPlaying,
+                    isLoopMode: isLoopMode,
+                    playbackStartTime: playbackStartTime,
+                    nextNoteTime: nextNoteTime,
+                    audioCtxCurrentTime: audioCtx.currentTime
+                });
                 const overlay = document.getElementById('countInOverlay');
                 if (overlay) overlay.style.display = 'flex';
+                console.log('[DEBUG] 發送 timerWorker start 訊息');
                 timerWorker.postMessage("start");
                 if (isLoopMode) {
                     loopBtn.classList.add('playing'); loopBtn.textContent = "停止";
+                    console.log('[DEBUG] 循環模式，更新循環按鈕');
                 } else {
                     playBtn.classList.add('playing'); playBtn.textContent = "停止";
+                    console.log('[DEBUG] 普通模式，更新播放按鈕');
                 }
                 updateButtonStates(); // 更新按钮状态，使另一个按钮灰阶
-            } else { stopPlayback(); }
+                console.log('[DEBUG] 播放已啟動');
+            } else { 
+                console.log('[DEBUG] 正在播放，調用 stopPlayback()');
+                stopPlayback(); 
+            }
         }
 
         function stopPlayback() {
+            console.log('[DEBUG] stopPlayback 開始:', {
+                isPlaying: isPlaying,
+                isLoopMode: isLoopMode,
+                audioCtxState: audioCtx ? audioCtx.state : 'null'
+            });
+            
             isPlaying = false; 
             isCountingIn = false;
             // 重置循環模式狀態
@@ -448,6 +508,7 @@
             playbackStartTime = 0.0;
             playbackStartStep = 0;
             
+            console.log('[DEBUG] 發送 timerWorker stop 訊息');
             timerWorker.postMessage("stop");
             playBtn.classList.remove('playing'); playBtn.textContent = "播放";
             loopBtn.classList.remove('playing'); loopBtn.textContent = "循環";
@@ -455,6 +516,12 @@
             if (overlay) overlay.style.display = 'none';
             clearPlaybackUI(); resetRowStyles();
             updateButtonStates();
+            
+            console.log('[DEBUG] stopPlayback 完成，狀態已重置:', {
+                isPlaying: isPlaying,
+                isLoopMode: isLoopMode,
+                currentGlobalStep: currentGlobalStep
+            });
         }
 
         function clearPlaybackUI() { document.querySelectorAll('.beat-box').forEach(el => el.classList.remove('playing-now')); }
