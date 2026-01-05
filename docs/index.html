@@ -396,9 +396,29 @@
 
         async function togglePlayback() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            // 確保 AudioContext 處於運行狀態
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
+            // 如果 AudioContext 狀態不是 'running'，等待它恢復
+            if (audioCtx.state !== 'running') {
+                await new Promise((resolve) => {
+                    const checkState = () => {
+                        if (audioCtx.state === 'running') {
+                            resolve();
+                        } else {
+                            audioCtx.addEventListener('statechange', checkState, { once: true });
+                        }
+                    };
+                    checkState();
+                });
+            }
+            
             if (!isPlaying) {
-                isPlaying = true; isCountingIn = true; countInStep = 0; currentGlobalStep = 0; 
+                isPlaying = true; 
+                isCountingIn = true; 
+                countInStep = 0; 
+                currentGlobalStep = 0; 
                 // 記錄播放開始的絕對時間和步數，用於避免累積誤差
                 playbackStartTime = audioCtx.currentTime + 0.05;
                 playbackStartStep = 0;
@@ -417,7 +437,17 @@
         }
 
         function stopPlayback() {
-            isPlaying = false; isCountingIn = false;
+            isPlaying = false; 
+            isCountingIn = false;
+            // 重置循環模式狀態
+            isLoopMode = false;
+            // 重置時間相關變量
+            currentGlobalStep = 0;
+            countInStep = 0;
+            nextNoteTime = 0.0;
+            playbackStartTime = 0.0;
+            playbackStartStep = 0;
+            
             timerWorker.postMessage("stop");
             playBtn.classList.remove('playing'); playBtn.textContent = "播放";
             loopBtn.classList.remove('playing'); loopBtn.textContent = "循環";
