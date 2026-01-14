@@ -504,6 +504,8 @@
                 console.log('[DEBUG] 播放已啟動');
             } else { 
                 console.log('[DEBUG] 正在播放，調用 stopPlayback()');
+                // 用户手动停止，重置循环模式状态
+                isLoopMode = false;
                 stopPlayback(); 
             }
         }
@@ -515,10 +517,12 @@
                 audioCtxState: audioCtx ? audioCtx.state : 'null'
             });
             
+            // 先设置 isPlaying 为 false，防止后续的调度继续执行
             isPlaying = false; 
             isCountingIn = false;
-            // 重置循環模式狀態
-            isLoopMode = false;
+            // 注意：不重置 isLoopMode，因为用户可能希望保持循环模式设置
+            // 只有在用户手动停止时才重置 isLoopMode（在 togglePlayback 中处理）
+            
             // 重置時間相關變量
             currentGlobalStep = 0;
             countInStep = 0;
@@ -588,6 +592,12 @@
                 }
                 
                 while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                    // 在循环内部检查 isPlaying，防止停止播放后继续执行
+                    if (!isPlaying) {
+                        console.log('[DEBUG] timerWorker: 檢測到播放已停止，退出調度循環');
+                        break;
+                    }
+                    
                     if (isCountingIn) {
                         if (countInStep < 4) { 
                             scheduleCountIn(countInStep, nextNoteTime); 
@@ -604,10 +614,20 @@
                             playbackStartStep = currentGlobalStep;
                             // 直接使用當前的 nextNoteTime 播放第一拍音符
                             processSequenceStep(beatDur); 
+                            // 检查播放是否已停止（可能在 processSequenceStep 中调用了 stopPlayback）
+                            if (!isPlaying) {
+                                console.log('[DEBUG] timerWorker: 播放已停止（在 processSequenceStep 中）');
+                                break;
+                            }
                             nextNoteTime += beatDur;
                         }
                     } else { 
                         processSequenceStep(beatDur); 
+                        // 检查播放是否已停止（可能在 processSequenceStep 中调用了 stopPlayback）
+                        if (!isPlaying) {
+                            console.log('[DEBUG] timerWorker: 播放已停止（在 processSequenceStep 中）');
+                            break;
+                        }
                         // 使用累加方式計算時間（簡單快速）
                         nextNoteTime += beatDur;
                     }
@@ -623,10 +643,17 @@
             if (currentGlobalStep >= totalStepsInSequence) {
                 if (isLoopMode) {
                     // 循環模式下重置步數時，同時更新誤差校正的基準點
-                    playbackStartTime = audioCtx.currentTime;
+                    // 使用当前时间作为新的基准点，确保时间连续性
+                    const now = audioCtx.currentTime;
+                    playbackStartTime = now;
                     playbackStartStep = 0;
                     currentGlobalStep = 0;
+                    // 重置 nextNoteTime 为当前时间，确保下一轮循环从正确的时间开始
+                    nextNoteTime = now;
+                    console.log('[DEBUG] 循環模式：重置到開始，新基準時間:', now);
                 } else {
+                    // 非循環模式：播放完畢，停止播放
+                    console.log('[DEBUG] 播放完畢（非循環模式），停止播放');
                     stopPlayback(); 
                     return;
                 }
