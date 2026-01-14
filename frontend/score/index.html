@@ -435,19 +435,37 @@
             // 如果 AudioContext 狀態不是 'running'，等待它恢復
             if (audioCtx.state !== 'running') {
                 console.log('[DEBUG] AudioContext 狀態不是 running，等待狀態變化...');
-                await new Promise((resolve) => {
-                    const checkState = () => {
-                        console.log('[DEBUG] 檢查 AudioContext 狀態:', audioCtx.state);
-                        if (audioCtx.state === 'running') {
-                            console.log('[DEBUG] AudioContext 已恢復為 running');
-                            resolve();
-                        } else {
-                            console.log('[DEBUG] 等待 AudioContext 狀態變化...');
-                            audioCtx.addEventListener('statechange', checkState, { once: true });
-                        }
-                    };
-                    checkState();
-                });
+                try {
+                    await new Promise((resolve, reject) => {
+                        // 设置超时，避免无限等待
+                        const timeout = setTimeout(() => {
+                            console.error('[ERROR] AudioContext 恢復超時');
+                            reject(new Error('AudioContext 恢復超時'));
+                        }, 3000);
+                        
+                        const checkState = () => {
+                            console.log('[DEBUG] 檢查 AudioContext 狀態:', audioCtx.state);
+                            if (audioCtx.state === 'running') {
+                                clearTimeout(timeout);
+                                console.log('[DEBUG] AudioContext 已恢復為 running');
+                                resolve();
+                            } else if (audioCtx.state === 'closed') {
+                                clearTimeout(timeout);
+                                console.error('[ERROR] AudioContext 已關閉');
+                                reject(new Error('AudioContext 已關閉'));
+                            } else {
+                                console.log('[DEBUG] 等待 AudioContext 狀態變化...');
+                                audioCtx.addEventListener('statechange', checkState, { once: true });
+                            }
+                        };
+                        checkState();
+                    });
+                } catch (error) {
+                    console.error('[ERROR] AudioContext 恢復失敗:', error);
+                    // 如果恢复失败，重新创建 AudioContext
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('[DEBUG] 重新創建 AudioContext，狀態:', audioCtx.state);
+                }
             }
             
             console.log('[DEBUG] AudioContext 最終狀態:', audioCtx.state);
@@ -530,6 +548,23 @@
         timerWorker.onmessage = (e) => {
             if (e.data === "tick") {
                 if (!isPlaying) return;
+                
+                // 检查 audioCtx 是否存在且可用
+                if (!audioCtx || audioCtx.state === 'closed') {
+                    console.warn('[WARN] timerWorker: audioCtx 不可用，停止播放');
+                    stopPlayback();
+                    return;
+                }
+                
+                // 如果 AudioContext 处于 suspended 状态，尝试恢复
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(err => {
+                        console.error('[ERROR] timerWorker: 無法恢復 AudioContext:', err);
+                        stopPlayback();
+                    });
+                    return; // 暂时跳过，等待恢复
+                }
+                
                 const bpm = parseInt(bpmSlider.value), beatDur = 60.0 / bpm;
                 // 增加調度提前時間到 0.2 秒，確保高 BPM 時也能及時調度
                 const scheduleAheadTime = 0.2;
@@ -613,14 +648,42 @@
         }
 
         function scheduleCountIn(step, time) {
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
-            gain.gain.setValueAtTime(0.4, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(time); osc.stop(time + 0.1);
-            const countText = (4 - step).toString();
-            const delay = (time - audioCtx.currentTime) * 1000;
-            setTimeout(() => { if (isCountingIn && isPlaying) updateCountInUI(countText); }, Math.max(0, delay));
+            // 检查 audioCtx 是否存在且可用
+            if (!audioCtx || audioCtx.state === 'closed') {
+                console.warn('[WARN] scheduleCountIn: audioCtx 不可用');
+                return;
+            }
+            
+            // 如果 AudioContext 处于 suspended 状态，尝试恢复
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(err => {
+                    console.error('[ERROR] scheduleCountIn: 無法恢復 AudioContext:', err);
+                    if (isPlaying) stopPlayback();
+                });
+                return; // 暂时跳过，等待恢复
+            }
+            
+            // 如果时间太早（已经过去超过 0.1 秒），跳过调度
+            const timeDiff = time - audioCtx.currentTime;
+            if (timeDiff < -0.1) {
+                console.warn('[WARN] scheduleCountIn: 時間已過，跳過調度', { time, currentTime: audioCtx.currentTime, diff: timeDiff });
+                return;
+            }
+            
+            try {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
+                gain.gain.setValueAtTime(0.4, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(time); osc.stop(time + 0.1);
+                const countText = (4 - step).toString();
+                const delay = (time - audioCtx.currentTime) * 1000;
+                setTimeout(() => { if (isCountingIn && isPlaying) updateCountInUI(countText); }, Math.max(0, delay));
+            } catch (error) {
+                console.error('[ERROR] scheduleCountIn 錯誤:', error);
+                // 如果出现错误，停止播放以避免持续崩溃
+                if (isPlaying) stopPlayback();
+            }
         }
 
         function updateCountInUI(text) {
@@ -629,32 +692,86 @@
         }
 
         function playSound(time, freq, volume = 0.3, soundType = 'snap', isAccent = false) {
+            // 检查 audioCtx 是否存在且可用
+            if (!audioCtx || audioCtx.state === 'closed') {
+                console.warn('[WARN] playSound: audioCtx 不可用');
+                return;
+            }
+            
+            // 如果 AudioContext 处于 suspended 状态，尝试恢复
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(err => {
+                    console.error('[ERROR] playSound: 無法恢復 AudioContext:', err);
+                    if (isPlaying) stopPlayback();
+                });
+                return; // 暂时跳过，等待恢复
+            }
+            
+            // 如果时间太早（已经过去超过 0.1 秒），跳过调度
+            const timeDiff = time - audioCtx.currentTime;
+            if (timeDiff < -0.1) {
+                console.warn('[WARN] playSound: 時間已過，跳過調度', { time, currentTime: audioCtx.currentTime, diff: timeDiff });
+                return;
+            }
+            
             // 確保時間不會是過去時間，避免延遲
             const scheduleTime = Math.max(time, audioCtx.currentTime);
             const finalVol = isAccent ? volume * 1.6 : volume, finalFreq = isAccent ? freq * 1.2 : freq;
-            if (soundType === 'noise') {
-                const bufferSize = audioCtx.sampleRate * 0.1, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                const noiseSource = audioCtx.createBufferSource(); noiseSource.buffer = buffer;
-                const gainNode = audioCtx.createGain(), noiseFilter = audioCtx.createBiquadFilter();
-                noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
-                noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
-                gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
-                noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.079); gainNode.connect(audioCtx.destination); return;
+            
+            try {
+                if (soundType === 'noise') {
+                    const bufferSize = audioCtx.sampleRate * 0.1, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                    const noiseSource = audioCtx.createBufferSource(); noiseSource.buffer = buffer;
+                    const gainNode = audioCtx.createGain(), noiseFilter = audioCtx.createBiquadFilter();
+                    noiseFilter.type = 'highpass'; noiseFilter.frequency.value = finalFreq * 3;
+                    noiseSource.connect(noiseFilter); noiseFilter.connect(gainNode);
+                    gainNode.gain.setValueAtTime(finalVol * 0.4, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
+                    noiseSource.start(scheduleTime); noiseSource.stop(scheduleTime + 0.079); gainNode.connect(audioCtx.destination); return;
+                }
+                const osc = audioCtx.createOscillator(), gainNode = audioCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, scheduleTime);
+                gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
+                osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.079);
+            } catch (error) {
+                console.error('[ERROR] playSound 錯誤:', error);
+                // 如果出现错误，停止播放以避免持续崩溃
+                if (isPlaying) stopPlayback();
             }
-            const osc = audioCtx.createOscillator(), gainNode = audioCtx.createGain();
-            osc.type = 'square'; osc.frequency.setValueAtTime(finalFreq * 2, scheduleTime);
-            gainNode.gain.setValueAtTime(finalVol * 0.5, scheduleTime); gainNode.gain.exponentialRampToValueAtTime(0.001, scheduleTime + 0.05);
-            osc.connect(gainNode); gainNode.connect(audioCtx.destination); osc.start(scheduleTime); osc.stop(scheduleTime + 0.079);
         }
 
         function playMetronomeTick(time) {
+            // 检查 audioCtx 是否存在且可用
+            if (!audioCtx || audioCtx.state === 'closed') {
+                console.warn('[WARN] playMetronomeTick: audioCtx 不可用');
+                return;
+            }
+            
+            // 如果 AudioContext 处于 suspended 状态，尝试恢复
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(err => {
+                    console.error('[ERROR] playMetronomeTick: 無法恢復 AudioContext:', err);
+                });
+                return; // 暂时跳过，等待恢复
+            }
+            
+            // 如果时间太早（已经过去超过 0.1 秒），跳过调度
+            const timeDiff = time - audioCtx.currentTime;
+            if (timeDiff < -0.1) {
+                console.warn('[WARN] playMetronomeTick: 時間已過，跳過調度', { time, currentTime: audioCtx.currentTime, diff: timeDiff });
+                return;
+            }
+            
             // 播放叮聲作為拍子提示（類似倒數的聲音）
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
-            gain.gain.setValueAtTime(0.3, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(time); osc.stop(time + 0.08);
+            try {
+                const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, time);
+                gain.gain.setValueAtTime(0.3, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(time); osc.stop(time + 0.08);
+            } catch (error) {
+                console.error('[ERROR] playMetronomeTick 錯誤:', error);
+            }
         }
 
         // 檢查音符類型是否在第一個位置（p16[0]）有聲音
@@ -742,6 +859,11 @@
         }
 
         function updateUI(r, b, time) {
+            // 检查 audioCtx 是否存在且可用
+            if (!audioCtx || audioCtx.state === 'closed') {
+                return;
+            }
+            
             // 确保时间不会太早，使用当前音频上下文时间作为基准
             const scheduleTime = Math.max(time, audioCtx.currentTime);
             const delay = (scheduleTime - audioCtx.currentTime) * 1000;
