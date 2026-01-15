@@ -371,9 +371,32 @@
                     audioCtxState: audioCtx ? audioCtx.state : 'null',
                     isLoopMode: isLoopMode
                 });
+                
                 if (document.hidden && isPlaying) {
+                    // 切换到背景时停止播放
                     console.log('[DEBUG] 切換到背景，停止播放');
                     stopPlayback();
+                } else if (!document.hidden && audioCtx) {
+                    // 从背景回到前景时，确保 AudioContext 状态正确
+                    console.log('[DEBUG] 回到前景，檢查 AudioContext 狀態');
+                    
+                    // 如果 AudioContext 处于 suspended 状态，尝试恢复
+                    if (audioCtx.state === 'suspended') {
+                        console.log('[DEBUG] AudioContext 處於 suspended 狀態，嘗試恢復');
+                        audioCtx.resume().catch(err => {
+                            console.error('[ERROR] 恢復 AudioContext 失敗:', err);
+                        });
+                    }
+                    
+                    // 确保播放状态与 UI 状态一致
+                    if (!isPlaying) {
+                        // 如果不在播放状态，确保 UI 按钮状态正确
+                        playBtn.classList.remove('playing');
+                        playBtn.textContent = "播放";
+                        loopBtn.classList.remove('playing');
+                        loopBtn.textContent = "循環";
+                        updateButtonStates();
+                    }
                 }
             });
         }
