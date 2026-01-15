@@ -1404,14 +1404,14 @@
             });
         }
 
-        function setFocus(r, b) {
+        function setFocus(r, b, shouldInput = true) {
             r = (r + scoreData.length) % scoreData.length;
             if (!scoreData[r]) return;
             const maxBeat = scoreData[r].length;
             b = (b + maxBeat) % maxBeat; 
             
-            // 如果有選中的音符，執行循環輸入
-            if (selectedNoteId !== null) {
+            // 如果有選中的音符，執行循環輸入（僅在 shouldInput 為 true 時）
+            if (shouldInput && selectedNoteId !== null) {
                 const currentValue = scoreData[r][b];
                 const cycle = NOTE_CYCLES[selectedNoteId];
                 
@@ -1500,19 +1500,19 @@
             }
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                setFocus(focusState.row, focusState.beat + 1);
+                setFocus(focusState.row, focusState.beat + 1, false);
             }
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                setFocus(focusState.row, focusState.beat - 1);
+                setFocus(focusState.row, focusState.beat - 1, false);
             }
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                setFocus(focusState.row - 1, focusState.beat);
+                setFocus(focusState.row - 1, focusState.beat, false);
             }
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                setFocus(focusState.row + 1, focusState.beat);
+                setFocus(focusState.row + 1, focusState.beat, false);
             }
             // 確保焦點不超出當前句段的範圍
             if (scoreData[focusState.row] && focusState.beat >= scoreData[focusState.row].length) {
