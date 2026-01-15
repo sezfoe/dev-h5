@@ -628,7 +628,8 @@
                             console.log('[DEBUG] timerWorker: 播放已停止（在 processSequenceStep 中）');
                             break;
                         }
-                        // 使用累加方式計算時間（簡單快速）
+                        // 時間計算一直延續，無論是否發生循環重置，都繼續累加
+                        // 循環重置只影響音符指標（currentGlobalStep），不影響時間計算
                         nextNoteTime += beatDur;
                     }
                 }
@@ -642,15 +643,21 @@
             // 如果是循環模式且到達末尾，重置到開始
             if (currentGlobalStep >= totalStepsInSequence) {
                 if (isLoopMode) {
-                    // 循環模式下重置步數時，同時更新誤差校正的基準點
-                    // 使用当前时间作为新的基准点，确保时间连续性
-                    const now = audioCtx.currentTime;
-                    playbackStartTime = now;
+                    // 循環模式：時間計算一直延續，只是音符指標指回開頭
+                    // 更新誤差校正的基準點：使用當前的 nextNoteTime 作為新一輪循環的基準
+                    // 這樣可以保持時間的連續性，同時重置誤差校正的基準
+                    playbackStartTime = nextNoteTime;
                     playbackStartStep = 0;
+                    // 只重置音符指標，時間繼續延續
                     currentGlobalStep = 0;
-                    // 重置 nextNoteTime 为当前时间，确保下一轮循环从正确的时间开始
-                    nextNoteTime = now;
-                    console.log('[DEBUG] 循環模式：重置到開始，新基準時間:', now);
+                    // nextNoteTime 不改變，繼續在 while 循環中累加，保持時間連續性
+                    console.log('[DEBUG] 循環模式：重置音符指標到開始，時間繼續延續', {
+                        playbackStartTime: playbackStartTime,
+                        nextNoteTime: nextNoteTime,
+                        currentGlobalStep: currentGlobalStep,
+                        currentTime: audioCtx.currentTime
+                    });
+                    // 不返回，繼續處理第一拍（currentGlobalStep = 0）
                 } else {
                     // 非循環模式：播放完畢，停止播放
                     console.log('[DEBUG] 播放完畢（非循環模式），停止播放');
