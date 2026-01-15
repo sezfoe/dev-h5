@@ -94,6 +94,10 @@
             filter: grayscale(100%);
         }
         .btn-loop { margin-left: 4px; }
+        .btn-loop.disabled {
+            background: #94a3b8; color: #64748b; cursor: not-allowed;
+            filter: grayscale(100%);
+        }
 
         .btn-random {
             background: #6366f1; color: white; border: none;
@@ -338,12 +342,22 @@
                 }
             };
             playBtn.onclick = () => { 
+                // 如果按鈕被禁用，不執行操作
+                if (playBtn.classList.contains('disabled')) {
+                    console.log('[DEBUG] 播放按鈕被禁用，忽略點擊');
+                    return;
+                }
                 console.log('[DEBUG] 播放按鈕點擊');
                 isLoopMode = false; 
                 console.log('[DEBUG] 設置 isLoopMode = false');
                 togglePlayback(); 
             };
             loopBtn.onclick = () => { 
+                // 如果按鈕被禁用，不執行操作
+                if (loopBtn.classList.contains('disabled')) {
+                    console.log('[DEBUG] 循環按鈕被禁用，忽略點擊');
+                    return;
+                }
                 console.log('[DEBUG] 循環按鈕點擊');
                 isLoopMode = true; 
                 console.log('[DEBUG] 設置 isLoopMode = true');
@@ -380,12 +394,24 @@
                     // 從背景回到前景時，確保 AudioContext 狀態正確
                     console.log('[DEBUG] 回到前景，檢查 AudioContext 狀態');
                     
-                    // 如果 AudioContext 處於 suspended 狀態，嘗試恢復
-                    if (audioCtx.state === 'suspended') {
-                        console.log('[DEBUG] AudioContext 處於 suspended 狀態，嘗試恢復');
-                        audioCtx.resume().catch(err => {
-                            console.error('[ERROR] 恢復 AudioContext 失敗:', err);
-                        });
+                    // 如果不在播放狀態，關閉並重新創建 AudioContext 以清除所有已調度的音頻
+                    if (!isPlaying) {
+                        console.log('[DEBUG] 不在播放狀態，關閉 AudioContext 以清除已調度的音頻');
+                        if (audioCtx.state !== 'closed') {
+                            audioCtx.close().catch(err => {
+                                console.error('[ERROR] 關閉 AudioContext 失敗:', err);
+                            });
+                        }
+                        audioCtx = null;
+                        console.log('[DEBUG] AudioContext 已清除，將在下次播放時重新創建');
+                    } else {
+                        // 如果 AudioContext 處於 suspended 狀態，嘗試恢復
+                        if (audioCtx.state === 'suspended') {
+                            console.log('[DEBUG] AudioContext 處於 suspended 狀態，嘗試恢復');
+                            audioCtx.resume().catch(err => {
+                                console.error('[ERROR] 恢復 AudioContext 失敗:', err);
+                            });
+                        }
                     }
                     
                     // 確保播放狀態與 UI 狀態一致
@@ -581,6 +607,15 @@
             nextNoteTime = 0.0;
             playbackStartTime = 0.0;
             playbackStartStep = 0;
+            
+            // 關閉 AudioContext 以清除所有已調度的音頻
+            if (audioCtx && audioCtx.state !== 'closed') {
+                console.log('[DEBUG] 關閉 AudioContext 以清除已調度的音頻');
+                audioCtx.close().catch(err => {
+                    console.error('[ERROR] 關閉 AudioContext 失敗:', err);
+                });
+                audioCtx = null;
+            }
             
             console.log('[DEBUG] 發送 timerWorker stop 訊息');
             timerWorker.postMessage("stop");
