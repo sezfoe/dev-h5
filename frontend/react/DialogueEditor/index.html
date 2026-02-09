@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Dialogue Local Development</title>
+    
+    <!-- 1. 引入必要函式庫 (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel 用於在瀏覽器即時編譯 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide 圖標庫 (UMD 版本，對應全域變數 lucideReact) -->
+    <script src="https://unpkg.com/lucide-react@0.344.0/dist/umd/lucide-react.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            margin: 0;
+            background-color: #09090b; /* zinc-950 */
+        }
+    </style>
+</head>
+<body>
+    <!-- React 掛載點 -->
+    <div id="root"></div>
+
+    <!-- 
+        重要設定：
+        1. type="text/babel"：告訴 Babel 編譯這段代碼
+        2. src="./DialogueEditor.jsx"：流程編輯器入口，與 index.html 同目錄
+        3. 請使用 Live Server 等本地伺服器開啟，避免路徑與 CORS 問題
+    -->
+    <script 
+        type="text/babel" 
+        data-type="module" 
+        src="./DialogueEditor.jsx">
+    </script>
+
+    <!-- 如果外部檔案載入失敗的簡易提示 -->
+    <script>
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'SCRIPT') {
+                console.error('檔案載入失敗，請檢查路徑或是否已啟動 Live Server:', e.target.src);
+            }
+        }, true);
+    </script>
+</body>
+</html>
