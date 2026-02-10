@@ -2,6 +2,7 @@ tags
 .svn
 .vscode
 .idea
+.cursor
 
 # Binaries for programs and plugins
 /go.sum
@@ -49,6 +50,7 @@ pkg/
 
 # Git hooks and configuration (if not tracked intentionally)
 .hooks/
+
 # Ignore Marduk folder
 #Marduk/**/*
 Marduk/
